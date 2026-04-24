@@ -86,3 +86,39 @@ def test_fetch_recent_filings_returns_spans():
     assert len(spans) == 2
     assert all(s.source_ref.startswith("sec:") for s in spans)
     assert all(s.agent_origin == "filings" for s in spans)
+
+from backend.tools.news import get_news_evidence
+
+def _mock_tavily_response():
+    return {
+        "results": [
+            {
+                "url": "https://example.com/aapl-earnings-2024",
+                "content": "Apple reported strong Q4 earnings with EPS of $1.64.",
+                "published_date": "2024-11-01",
+            },
+            {
+                "url": "https://example.com/aapl-china-risk",
+                "content": "Apple faces headwinds in China amid competition.",
+                "published_date": "2024-10-20",
+            },
+        ]
+    }
+
+def test_get_news_evidence_returns_spans():
+    with patch("backend.tools.news.TavilyClient") as MockClient:
+        MockClient.return_value.search.return_value = _mock_tavily_response()
+        spans = get_news_evidence("AAPL")
+    assert len(spans) == 2
+    assert all(s.source_ref.startswith("news:") for s in spans)
+    assert all(s.agent_origin == "news" for s in spans)
+    assert all(s.confidence == 0.8 for s in spans)
+
+def test_get_news_evidence_caps_content_at_500_chars():
+    long_content = "x" * 1000
+    with patch("backend.tools.news.TavilyClient") as MockClient:
+        MockClient.return_value.search.return_value = {
+            "results": [{"url": "http://a.com/b", "content": long_content, "published_date": "2024-01-01"}]
+        }
+        spans = get_news_evidence("AAPL")
+    assert len(spans[0].text) <= 500
