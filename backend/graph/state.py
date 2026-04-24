@@ -18,6 +18,7 @@ class InputState(TypedDict):
 class AgentState(TypedDict):
     query: str
     ticker: str
+    query_type: Literal["earnings", "bull_bear", "thesis_drift", "unknown"]
     evidence: Annotated[list[EvidenceSpan], dedupe_by_id]
     bull_points: Annotated[list[DebatePoint], dedupe_by_id]
     bear_points: Annotated[list[DebatePoint], dedupe_by_id]
