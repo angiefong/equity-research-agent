@@ -113,3 +113,35 @@ def test_evidence_contradiction_agent_returns_contradictions():
     assert "evidence_contradictions" in result
     assert len(result["evidence_contradictions"]) == 1
     assert result["evidence_contradictions"][0].severity == ContradictionSeverity.HIGH
+
+from backend.schemas.debate import DebatePoint, DebateSide
+
+def _mock_debate_output(side: str):
+    from pydantic import BaseModel
+    class MockOut(BaseModel):
+        debate_points: list[DebatePoint]
+    return MockOut(debate_points=[
+        DebatePoint(
+            side=DebateSide.BULL if side == "bull" else DebateSide.BEAR,
+            claim="Services revenue accelerating",
+            evidence_span_ids=["e1"],
+            confidence=0.85,
+            rationale="Services grew 14% YoY driven by App Store",
+        )
+    ])
+
+def test_bull_agent_returns_bull_points():
+    from backend.agents.bull import bull_agent
+    with patch("backend.agents.bull.get_structured_llm") as mock_llm:
+        mock_llm.return_value.invoke.return_value = _mock_debate_output("bull")
+        result = bull_agent(_base_state())
+    assert "bull_points" in result
+    assert result["bull_points"][0].side == DebateSide.BULL
+
+def test_bear_agent_returns_bear_points():
+    from backend.agents.bear import bear_agent
+    with patch("backend.agents.bear.get_structured_llm") as mock_llm:
+        mock_llm.return_value.invoke.return_value = _mock_debate_output("bear")
+        result = bear_agent(_base_state())
+    assert "bear_points" in result
+    assert result["bear_points"][0].side == DebateSide.BEAR
