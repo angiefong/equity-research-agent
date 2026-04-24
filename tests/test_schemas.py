@@ -107,3 +107,36 @@ def test_thesis_delta():
     )
     assert len(delta.strengthened) == 1
     assert delta.confidence_drift[0].delta == 0.15
+
+from backend.schemas.memo import ResearchMemo
+
+def test_research_memo_first_run():
+    memo = ResearchMemo(
+        ticker="AAPL",
+        research_summary="AAPL shows strong services growth",
+        bull_case="Services segment expanding margins",
+        bear_case="Hardware saturation risk",
+        moderator_synthesis="Balanced outlook with services as swing factor",
+        contradictions_detected=["Revenue direction conflict between 10-K and news"],
+        unresolved_questions=["Will China sales recover in H2?"],
+        thesis_drift_summary=None,
+        confidence_notes="High confidence on financials, medium on macro",
+        citations=["sec:AAPL-10K-2024:financials", "market:AAPL-price:90d-history"],
+    )
+    assert memo.id is not None
+    assert memo.thesis_drift_summary is None
+
+def test_research_memo_second_run_has_drift():
+    memo = ResearchMemo(
+        ticker="AAPL",
+        research_summary="Updated thesis",
+        bull_case="x",
+        bear_case="y",
+        moderator_synthesis="z",
+        contradictions_detected=[],
+        unresolved_questions=[],
+        thesis_drift_summary="Services thesis strengthened; China risk newly emerged",
+        confidence_notes="High",
+        citations=[],
+    )
+    assert memo.thesis_drift_summary is not None
