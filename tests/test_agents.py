@@ -169,3 +169,38 @@ def test_debate_contradiction_agent_detects_conflict():
         mock_llm.return_value.invoke.return_value = mock_out
         result = debate_contradiction_agent(state)
     assert len(result["debate_contradictions"]) == 1
+
+from backend.schemas.verification import VerificationIssue, VerificationIssueType
+
+def test_verifier_sets_pass_when_no_issues():
+    from backend.agents.verifier import verifier_agent
+    from pydantic import BaseModel
+
+    class MockOut(BaseModel):
+        issues: list[VerificationIssue]
+
+    with patch("backend.agents.verifier.get_structured_llm") as mock_llm:
+        mock_llm.return_value.invoke.return_value = MockOut(issues=[])
+        result = verifier_agent(_base_state())
+    assert result["verification_status"] == "pass"
+    assert result["reroute_targets"] == []
+
+def test_verifier_sets_needs_reroute_on_high_severity():
+    from backend.agents.verifier import verifier_agent
+    from pydantic import BaseModel
+
+    class MockOut(BaseModel):
+        issues: list[VerificationIssue]
+
+    high_issue = VerificationIssue(
+        claim="EPS grew 50%",
+        issue_type=VerificationIssueType.NUMERIC_MISMATCH,
+        severity=ContradictionSeverity.HIGH,
+        suggested_action="Re-fetch earnings from EDGAR",
+        target_agent="filings",
+    )
+    with patch("backend.agents.verifier.get_structured_llm") as mock_llm:
+        mock_llm.return_value.invoke.return_value = MockOut(issues=[high_issue])
+        result = verifier_agent(_base_state())
+    assert result["verification_status"] == "needs_reroute"
+    assert "filings" in result["reroute_targets"]
