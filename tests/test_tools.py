@@ -122,3 +122,45 @@ def test_get_news_evidence_caps_content_at_500_chars():
         }
         spans = get_news_evidence("AAPL")
     assert len(spans[0].text) <= 500
+
+import numpy as np
+import pandas as pd
+from backend.tools.quant import (
+    compute_returns, compute_volatility, compute_pe_ratio,
+    compute_ev_ebitda, fetch_peer_comps, generate_price_chart,
+)
+
+def _mock_quant_ticker(pe=25.0, ev_ebitda=20.0):
+    mock = MagicMock()
+    mock.info = {"trailingPE": pe, "enterpriseToEbitda": ev_ebitda}
+    dates = pd.date_range("2024-01-01", periods=90)
+    mock.history.return_value = pd.DataFrame(
+        {"Close": np.linspace(170, 195, 90)}, index=dates
+    )
+    return mock
+
+def test_compute_returns_returns_span():
+    with patch("backend.tools.quant.yf.Ticker", return_value=_mock_quant_ticker()):
+        span = compute_returns("AAPL")
+    assert "90-day return" in span.text
+    assert span.source_ref.startswith("quant:")
+    assert span.agent_origin == "quant_data"
+
+def test_compute_volatility_returns_span():
+    with patch("backend.tools.quant.yf.Ticker", return_value=_mock_quant_ticker()):
+        span = compute_volatility("AAPL")
+    assert "volatility" in span.text.lower()
+
+def test_compute_pe_ratio_returns_span():
+    with patch("backend.tools.quant.yf.Ticker", return_value=_mock_quant_ticker(pe=28.5)):
+        span = compute_pe_ratio("AAPL")
+    assert "28.5" in span.text
+    assert span.agent_origin == "quant_interpretation"
+
+def test_generate_price_chart_returns_base64():
+    with patch("backend.tools.quant.yf.Ticker", return_value=_mock_quant_ticker()):
+        span = generate_price_chart("AAPL")
+    assert span.chart_data is not None
+    import base64
+    decoded = base64.b64decode(span.chart_data)
+    assert decoded[:4] == b"\x89PNG"
