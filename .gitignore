@@ -23,5 +23,15 @@ mlruns/
 # OS
 .DS_Store
 
+# Test cache
+.pytest_cache/
+
+# Database files
+*.db
+
+# Finetune artifacts
+finetune/data/
+finetune/output/
+
 # Worktrees
 .worktrees/
