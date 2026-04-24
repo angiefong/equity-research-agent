@@ -72,3 +72,14 @@ def test_quant_data_agent_returns_evidence():
          patch("backend.agents.quant_data.fetch_peer_comps", return_value=_mock_spans(3, "quant_data")):
         result = quant_data_agent(_base_state())
     assert len(result["evidence"]) >= 2
+
+def test_quant_interpretation_agent_returns_evidence():
+    from backend.agents.quant_interpretation import quant_interpretation_agent
+    from backend.schemas.evidence import EvidenceSpan
+    mock_span = EvidenceSpan(text="P/E 28.5", source_ref="quant:AAPL-ratios:pe-ratio", agent_origin="quant_interpretation")
+    with patch("backend.agents.quant_interpretation.compute_pe_ratio", return_value=mock_span), \
+         patch("backend.agents.quant_interpretation.compute_ev_ebitda", return_value=mock_span), \
+         patch("backend.agents.quant_interpretation.generate_price_chart", return_value=mock_span):
+        result = quant_interpretation_agent(_base_state())
+    assert len(result["evidence"]) == 3
+    assert all(s.agent_origin == "quant_interpretation" for s in result["evidence"])
