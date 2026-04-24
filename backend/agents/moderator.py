@@ -1,35 +1,107 @@
-import os
-from pydantic import BaseModel
+from typing import Any
+from pydantic import BaseModel, field_validator, model_validator
 from backend.agents._prompts import format_evidence
-from backend.agents.llm import get_llm, get_structured_llm
+from backend.agents.llm import get_structured_llm
 from backend.graph.state import AgentState
 from backend.persistence.snapshot_store import save_snapshot
 from backend.schemas.contradiction import Contradiction
 from backend.schemas.debate import DebatePoint
 from backend.schemas.memo import ResearchMemo
 from backend.schemas.thesis import ThesisSnapshot
-from datetime import datetime
+
+
+def _coerce_to_str(v: Any) -> str:
+    if isinstance(v, str):
+        return v
+    if isinstance(v, list):
+        lines = []
+        for item in v:
+            if isinstance(item, str):
+                lines.append(f"- {item}")
+            elif isinstance(item, dict):
+                arg = item.get("argument") or item.get("claim") or item.get("text") or ""
+                cite = item.get("citation") or item.get("source_ref") or ""
+                line = f"- {arg}" + (f" [{cite}]" if cite else "")
+                lines.append(line)
+            else:
+                lines.append(f"- {item}")
+        return "\n".join(lines)
+    return str(v)
+
+
+class _ResearchMemoRaw(BaseModel):
+    research_summary: str
+    bull_case: str
+    bear_case: str
+    moderator_synthesis: str
+    contradictions_detected: list[str]
+    unresolved_questions: list[str]
+    thesis_drift_summary: str | None = None
+    confidence_notes: str
+    citations: list[str]
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_missing(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        str_defaults = {
+            "research_summary": "",
+            "bull_case": "",
+            "bear_case": "",
+            "moderator_synthesis": "",
+            "confidence_notes": "",
+        }
+        list_defaults = {
+            "contradictions_detected": [],
+            "unresolved_questions": [],
+            "citations": [],
+        }
+        for k, v in str_defaults.items():
+            data.setdefault(k, v)
+        for k, v in list_defaults.items():
+            data.setdefault(k, v)
+        return data
+
+    @field_validator("bull_case", "bear_case", "moderator_synthesis", "research_summary", "confidence_notes", mode="before")
+    @classmethod
+    def _strify(cls, v: Any) -> str:
+        return _coerce_to_str(v)
+
+    @field_validator("contradictions_detected", "unresolved_questions", "citations", mode="before")
+    @classmethod
+    def _list_strify(cls, v: Any) -> list[str]:
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [item if isinstance(item, str) else _coerce_to_str(item) for item in v]
+        return [_coerce_to_str(v)]
 
 
 class ModeratorOutput(BaseModel):
-    memo: ResearchMemo
+    memo: _ResearchMemoRaw
 
 
 _SYSTEM = """You are a financial research moderator producing balanced, source-backed research memos.
 You MUST NOT issue investment advice, buy/sell/hold recommendations, or suitability assessments.
+Every factual claim must be tied to a source_ref from the evidence.
 
-Produce a structured memo with all required sections:
-- research_summary: 2-3 sentence overview
-- bull_case: strongest upside arguments with citations
-- bear_case: strongest downside arguments with citations
-- moderator_synthesis: reconcile bull and bear — agreed facts, key disputed points
-- contradictions_detected: list any factual conflicts found
-- unresolved_questions: questions the evidence cannot answer
-- thesis_drift_summary: how thesis changed vs prior run (omit if no prior run — set to null)
-- confidence_notes: quality and completeness of evidence
-- citations: list all source_refs used
-
-Every factual claim must be tied to a source_ref from the evidence."""
+Return JSON with ALL of the following 9 keys inside "memo" — do not omit any. Strings must be strings
+(not arrays of objects). Arrays must be arrays of strings. Shape:
+{
+  "memo": {
+    "research_summary": "<2-3 sentence overview, STRING>",
+    "bull_case": "<strongest upside arguments with citations, STRING>",
+    "bear_case": "<strongest downside arguments with citations, STRING>",
+    "moderator_synthesis": "<reconcile bull and bear — agreed facts, key disputed points, STRING>",
+    "contradictions_detected": ["<factual conflict as a string>", ...],
+    "unresolved_questions": ["<question the evidence cannot answer>", ...],
+    "thesis_drift_summary": "<how thesis changed vs prior run, or null if no prior run>",
+    "confidence_notes": "<quality and completeness of evidence, STRING>",
+    "citations": ["<source_ref string>", ...]
+  }
+}
+All 9 keys are REQUIRED. If a section has nothing to report, use "" for strings or [] for arrays."""
 
 
 def _format_contradictions(items: list[Contradiction]) -> str:
@@ -43,7 +115,7 @@ def _format_debate(points: list[DebatePoint], label: str) -> str:
 
 
 def moderator_agent(state: AgentState) -> dict:
-    llm = get_structured_llm(ModeratorOutput)
+    llm = get_structured_llm(ModeratorOutput, method="json_mode")
 
     evidence_text = format_evidence(state["evidence"])
     bull_text = _format_debate(state["bull_points"], "bull")
@@ -74,6 +146,8 @@ def moderator_agent(state: AgentState) -> dict:
         )},
     ])
 
+    memo = ResearchMemo(**{**result.memo.model_dump(), "ticker": state["ticker"]})
+
     snapshot = ThesisSnapshot(
         ticker=state["ticker"],
         bull_points=state["bull_points"],
@@ -86,6 +160,6 @@ def moderator_agent(state: AgentState) -> dict:
     save_snapshot(snapshot)
 
     return {
-        "final_memo": result.memo,
+        "final_memo": memo,
         "thesis_snapshot_current": snapshot,
     }

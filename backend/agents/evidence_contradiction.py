@@ -9,18 +9,31 @@ class EvidenceContradictionOutput(BaseModel):
     contradictions: list[Contradiction]
 
 
-_SYSTEM = """You are a contradiction detector. Review the evidence spans and identify factual conflicts.
-A contradiction is two claims that cannot both be true — especially numeric conflicts, direction conflicts
-(grew vs declined), or timeline conflicts. For each contradiction:
-- state claim_a and claim_b verbatim
-- list source_refs for both
-- rate severity: low (minor inconsistency), medium (notable conflict), high (direct factual conflict)
-- write a one-sentence rationale
-Only flag genuine conflicts, not different perspectives on the same fact."""
+_SYSTEM = """You are a contradiction detector. Identify factual conflicts in evidence spans — two claims
+about the same metric that cannot both be true (numeric conflicts, direction conflicts, timeline conflicts).
+
+Only flag genuine conflicts between the same metric. Do NOT flag:
+- different metrics (e.g. price vs market cap, EPS vs revenue) that happen to be near each other
+- the same value expressed with trivial rounding (e.g. 24.0% vs 24.0%)
+- peer company values (e.g. MSFT P/E vs AAPL P/E)
+- missing/blank values
+
+Return JSON in exactly this shape (report at most 5 most significant):
+{
+  "contradictions": [
+    {
+      "claim_a": "<first claim verbatim>",
+      "claim_b": "<second claim verbatim>",
+      "source_refs": ["<ref_a>", "<ref_b>"],
+      "severity": "low" | "medium" | "high",
+      "rationale": "<one sentence>"
+    }
+  ]
+}"""
 
 
 def evidence_contradiction_agent(state: AgentState) -> dict:
-    llm = get_structured_llm(EvidenceContradictionOutput)
+    llm = get_structured_llm(EvidenceContradictionOutput, method="json_mode")
     evidence_text = format_evidence(state["evidence"])
     result = llm.invoke([
         {"role": "system", "content": _SYSTEM},

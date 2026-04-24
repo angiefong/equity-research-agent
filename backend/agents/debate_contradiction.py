@@ -9,10 +9,21 @@ class DebateContradictionOutput(BaseModel):
     contradictions: list[Contradiction]
 
 
-_SYSTEM = """You identify conflicts between bull and bear thesis points.
-A debate contradiction is where one side's claim directly conflicts with the other —
-not just different opinions, but mutually exclusive assertions about the same fact or metric.
-For each conflict, cite the specific bull and bear claims, rate severity, and explain the conflict."""
+_SYSTEM = """You identify conflicts between bull and bear thesis points — mutually exclusive assertions
+about the same fact or metric (not just different opinions).
+
+Return JSON in exactly this shape (report at most 5 most significant):
+{
+  "contradictions": [
+    {
+      "claim_a": "<bull claim verbatim>",
+      "claim_b": "<bear claim verbatim>",
+      "source_refs": ["BULL-N", "BEAR-M"],
+      "severity": "low" | "medium" | "high",
+      "rationale": "<one sentence explaining the conflict>"
+    }
+  ]
+}"""
 
 
 def _format_points(points: list[DebatePoint], label: str) -> str:
@@ -20,7 +31,7 @@ def _format_points(points: list[DebatePoint], label: str) -> str:
 
 
 def debate_contradiction_agent(state: AgentState) -> dict:
-    llm = get_structured_llm(DebateContradictionOutput)
+    llm = get_structured_llm(DebateContradictionOutput, method="json_mode")
     bull_text = _format_points(state["bull_points"], "bull")
     bear_text = _format_points(state["bear_points"], "bear")
     result = llm.invoke([

@@ -22,8 +22,8 @@ def _evidence_merge(state: AgentState) -> dict:
 
 def _route_after_verifier(state: AgentState) -> str:
     if (
-        state["verification_status"] == "needs_reroute"
-        and state["reroute_count_total"] < 2
+        state.get("verification_status") == "needs_reroute"
+        and state.get("reroute_count_total", 0) < 2
     ):
         return "reroute"
     return "thesis_replay"

@@ -17,5 +17,5 @@ def get_llm() -> ChatGroq:
     return _llm
 
 
-def get_structured_llm(output_schema: Type[BaseModel]):
-    return get_llm().with_structured_output(output_schema)
+def get_structured_llm(output_schema: Type[BaseModel], method: str = "function_calling"):
+    return get_llm().with_structured_output(output_schema, method=method)
