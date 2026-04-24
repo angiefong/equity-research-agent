@@ -285,3 +285,16 @@ def test_moderator_includes_drift_on_second_run():
         mock_llm.return_value.invoke.return_value = MockOut(memo=mock_memo)
         result = moderator_agent(state)
     assert result["final_memo"].thesis_drift_summary is not None
+
+def test_reroute_agent_fetches_targeted_agent():
+    from backend.agents.reroute import reroute_agent
+    from backend.schemas.evidence import EvidenceSpan
+    state = _base_state()
+    state["reroute_targets"] = ["filings"]
+    state["reroute_count_total"] = 0
+    mock_span = EvidenceSpan(text="New filing data", source_ref="sec:AAPL-10Q-2024:revenue", agent_origin="filings")
+    with patch("backend.agents.reroute.fetch_recent_filings", return_value=[mock_span]):
+        result = reroute_agent(state)
+    assert result["reroute_count_total"] == 1
+    assert result["verification_status"] == "pending"
+    assert len(result["evidence"]) == 1
