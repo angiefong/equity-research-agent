@@ -145,3 +145,27 @@ def test_bear_agent_returns_bear_points():
         result = bear_agent(_base_state())
     assert "bear_points" in result
     assert result["bear_points"][0].side == DebateSide.BEAR
+
+def test_debate_contradiction_agent_detects_conflict():
+    from backend.agents.debate_contradiction import debate_contradiction_agent
+    from pydantic import BaseModel
+
+    class MockOut(BaseModel):
+        contradictions: list[Contradiction]
+
+    mock_out = MockOut(contradictions=[
+        Contradiction(
+            claim_a="Bull: Services revenue will double",
+            claim_b="Bear: Services growth already plateauing",
+            source_refs=["quant:AAPL-ratios:pe-ratio"],
+            severity=ContradictionSeverity.MEDIUM,
+            rationale="Conflicting views on services trajectory",
+        )
+    ])
+    state = _base_state()
+    state["bull_points"] = [DebatePoint(side=DebateSide.BULL, claim="Services will double", evidence_span_ids=[], confidence=0.8, rationale="growth")]
+    state["bear_points"] = [DebatePoint(side=DebateSide.BEAR, claim="Services plateauing", evidence_span_ids=[], confidence=0.7, rationale="slowdown")]
+    with patch("backend.agents.debate_contradiction.get_structured_llm") as mock_llm:
+        mock_llm.return_value.invoke.return_value = mock_out
+        result = debate_contradiction_agent(state)
+    assert len(result["debate_contradictions"]) == 1
