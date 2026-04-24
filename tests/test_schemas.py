@@ -77,3 +77,33 @@ def test_verification_issue_target_agent_optional():
         suggested_action="Add source citation",
     )
     assert vi.target_agent is None
+
+from backend.schemas.thesis import ThesisSnapshot, ThesisDelta, ConfidenceDrift
+from backend.schemas.debate import DebatePoint, DebateSide
+
+def test_thesis_snapshot():
+    snap = ThesisSnapshot(
+        ticker="AAPL",
+        bull_points=[],
+        bear_points=[],
+        confidence_by_topic={"growth": 0.8, "risk": 0.4},
+    )
+    assert snap.id is not None
+    assert snap.ticker == "AAPL"
+    assert snap.timestamp is not None
+
+def test_thesis_delta():
+    delta = ThesisDelta(
+        ticker="AAPL",
+        previous_run_id="abc",
+        current_run_id="xyz",
+        strengthened=["Services revenue growth thesis"],
+        weakened=[],
+        new=["AI hardware supercycle argument"],
+        disappeared=["China market expansion thesis"],
+        confidence_drift=[
+            ConfidenceDrift(topic="growth", previous=0.7, current=0.85, delta=0.15)
+        ],
+    )
+    assert len(delta.strengthened) == 1
+    assert delta.confidence_drift[0].delta == 0.15
