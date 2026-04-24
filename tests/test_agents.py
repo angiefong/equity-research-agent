@@ -204,3 +204,34 @@ def test_verifier_sets_needs_reroute_on_high_severity():
         result = verifier_agent(_base_state())
     assert result["verification_status"] == "needs_reroute"
     assert "filings" in result["reroute_targets"]
+
+def test_thesis_replay_returns_none_on_first_run():
+    from backend.agents.thesis_replay import thesis_replay_agent
+    from backend.schemas.debate import DebatePoint, DebateSide
+    state = _base_state()
+    state["bull_points"] = []
+    state["bear_points"] = []
+    with patch("backend.agents.thesis_replay.load_latest_snapshot", return_value=None):
+        result = thesis_replay_agent(state)
+    assert result["thesis_snapshot_prior"] is None
+    assert result["thesis_delta"] is None
+
+def test_thesis_replay_computes_delta_on_second_run():
+    from backend.agents.thesis_replay import thesis_replay_agent
+    from backend.schemas.thesis import ThesisSnapshot
+    from backend.schemas.debate import DebatePoint, DebateSide
+    prior = ThesisSnapshot(
+        ticker="AAPL",
+        bull_points=[DebatePoint(side=DebateSide.BULL, claim="Old bull claim", evidence_span_ids=[], confidence=0.7, rationale="old")],
+        bear_points=[],
+        confidence_by_topic={"growth": 0.6},
+    )
+    state = _base_state()
+    state["bull_points"] = [DebatePoint(side=DebateSide.BULL, claim="New bull claim", evidence_span_ids=[], confidence=0.9, rationale="new")]
+    state["bear_points"] = []
+    with patch("backend.agents.thesis_replay.load_latest_snapshot", return_value=prior):
+        result = thesis_replay_agent(state)
+    assert result["thesis_snapshot_prior"] is not None
+    assert result["thesis_delta"] is not None
+    assert "New bull claim" in result["thesis_delta"].new
+    assert "Old bull claim" in result["thesis_delta"].disappeared
