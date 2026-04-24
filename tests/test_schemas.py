@@ -41,3 +41,16 @@ def test_debate_point_requires_rationale():
     import pytest
     with pytest.raises(ValidationError):
         DebatePoint(side=DebateSide.BEAR, claim="x", evidence_span_ids=[], confidence=0.5)
+
+from backend.schemas.contradiction import Contradiction, ContradictionSeverity, ContradictionStatus
+
+def test_contradiction_defaults_to_open():
+    c = Contradiction(
+        claim_a="Revenue grew 10%",
+        claim_b="Revenue declined 2%",
+        source_refs=["sec:AAPL-10K-2024:financials", "news:tavily-article:2024-01-15"],
+        severity=ContradictionSeverity.HIGH,
+        rationale="Direct numeric conflict on revenue direction",
+    )
+    assert c.status == ContradictionStatus.OPEN
+    assert c.id is not None
