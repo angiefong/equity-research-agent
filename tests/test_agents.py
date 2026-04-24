@@ -83,3 +83,33 @@ def test_quant_interpretation_agent_returns_evidence():
         result = quant_interpretation_agent(_base_state())
     assert len(result["evidence"]) == 3
     assert all(s.agent_origin == "quant_interpretation" for s in result["evidence"])
+
+from backend.schemas.contradiction import Contradiction, ContradictionSeverity
+
+def test_evidence_contradiction_agent_returns_contradictions():
+    from backend.agents.evidence_contradiction import evidence_contradiction_agent
+    from pydantic import BaseModel
+
+    class MockOutput(BaseModel):
+        contradictions: list[Contradiction]
+
+    mock_output = MockOutput(contradictions=[
+        Contradiction(
+            claim_a="Revenue grew 10%",
+            claim_b="Revenue declined 2%",
+            source_refs=["sec:AAPL-10K-2024:revenue", "news:tavily-article:2024-01"],
+            severity=ContradictionSeverity.HIGH,
+            rationale="Direct numeric conflict",
+        )
+    ])
+    state = _base_state()
+    state["evidence"] = [
+        EvidenceSpan(text="Revenue grew 10%", source_ref="sec:AAPL-10K-2024:revenue", agent_origin="filings"),
+        EvidenceSpan(text="Revenue declined 2%", source_ref="news:tavily-article:2024-01", agent_origin="news"),
+    ]
+    with patch("backend.agents.evidence_contradiction.get_structured_llm") as mock_llm:
+        mock_llm.return_value.invoke.return_value = mock_output
+        result = evidence_contradiction_agent(state)
+    assert "evidence_contradictions" in result
+    assert len(result["evidence_contradictions"]) == 1
+    assert result["evidence_contradictions"][0].severity == ContradictionSeverity.HIGH
