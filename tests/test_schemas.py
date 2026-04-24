@@ -54,3 +54,26 @@ def test_contradiction_defaults_to_open():
     )
     assert c.status == ContradictionStatus.OPEN
     assert c.id is not None
+
+from backend.schemas.verification import VerificationIssue, VerificationIssueType
+from backend.schemas.contradiction import ContradictionSeverity
+
+def test_verification_issue():
+    vi = VerificationIssue(
+        claim="EPS grew 15% YoY",
+        issue_type=VerificationIssueType.NUMERIC_MISMATCH,
+        severity=ContradictionSeverity.HIGH,
+        suggested_action="Re-fetch earnings data from EDGAR",
+        target_agent="filings",
+    )
+    assert vi.id is not None
+    assert vi.target_agent == "filings"
+
+def test_verification_issue_target_agent_optional():
+    vi = VerificationIssue(
+        claim="Strong brand loyalty",
+        issue_type=VerificationIssueType.UNSUPPORTED_CLAIM,
+        severity=ContradictionSeverity.MEDIUM,
+        suggested_action="Add source citation",
+    )
+    assert vi.target_agent is None
