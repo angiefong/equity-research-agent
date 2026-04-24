@@ -36,3 +36,27 @@ def test_dedupe_parallel_writes():
     assert len(merged) == 3
     ids = {s.id for s in merged}
     assert ids == {"m1", "m2", "f1"}
+
+
+from backend.graph.state import AgentState, InputState, OutputState
+
+def test_input_state_shape():
+    state: InputState = {"query": "Build a bull case for AAPL", "ticker": "AAPL"}
+    assert state["ticker"] == "AAPL"
+
+def test_agent_state_has_required_keys():
+    import typing
+    hints = typing.get_type_hints(AgentState)
+    for key in [
+        "query", "ticker", "evidence", "bull_points", "bear_points",
+        "evidence_contradictions", "debate_contradictions", "verification_issues",
+        "thesis_snapshot_prior", "thesis_snapshot_current", "thesis_delta",
+        "final_memo", "reroute_count_total", "reroute_targets", "verification_status",
+    ]:
+        assert key in hints, f"Missing key: {key}"
+
+def test_output_state_shape():
+    import typing
+    hints = typing.get_type_hints(OutputState)
+    assert "final_memo" in hints
+    assert "thesis_delta" in hints
