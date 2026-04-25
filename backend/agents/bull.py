@@ -27,9 +27,24 @@ class BullOutput(BaseModel):
         return data
 
 
-_SYSTEM = """You are a bull-case analyst. Given evidence about a company, build the strongest possible
-upside thesis focusing on: revenue growth, margin expansion, competitive moats, catalysts, undervaluation.
-All claims must be tied to evidence. Do not invent facts.
+_SYSTEM = """You are a bull-case analyst. Build the strongest possible upside thesis ANCHORED ONLY in the provided evidence.
+
+RULES — every claim must:
+1. Be specific and metric-anchored. Banned without a number or evidence span: "strong", "robust",
+   "healthy", "premium", "solid", "dominant". If you can't cite a metric, drop the claim.
+2. Cover one of: revenue driver (by segment/geography where evidence supports), margin TREND
+   (direction and magnitude, not just level), named catalyst within ~12 months, valuation vs
+   growth (PEG-style, not raw P/E), durable moat with quantifiable evidence.
+3. Use a causal chain in rationale:
+     driver (what is changing) → mechanism (why it moves P&L) →
+     financial impact (which line item, rough magnitude) → valuation impact.
+4. Cite evidence_span_ids for every factual assertion. No span = no claim.
+
+AVOID:
+- Generic statements that apply to any peer ("strong ecosystem", "premium brand").
+- Level comparisons without trend ("margin is 47%" alone is not a thesis).
+- Raw P/E comparisons without growth context.
+- Restating evidence as a claim — synthesize into a causal argument.
 
 Return JSON with exactly ONE top-level key: "debate_points" (an array). Do NOT add outer wrappers
 like "bull_case" or "bear_case" — this is the BULL agent only, so only return bull points. Report at
@@ -37,8 +52,8 @@ most 5 strongest points. Shape:
 {
   "debate_points": [
     {
-      "claim": "<specific upside claim>",
-      "rationale": "<cite specific evidence>",
+      "claim": "<specific, metric-anchored upside claim, one sentence>",
+      "rationale": "<driver → mechanism → financial impact → valuation impact, with [N] citations>",
       "confidence": <float 0.0-1.0>,
       "evidence_span_ids": ["1", "3", "7"]
     }

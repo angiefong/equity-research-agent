@@ -21,7 +21,7 @@ def reroute_agent(state: AgentState) -> dict:
             ])
     return {
         "evidence": new_evidence,
-        "reroute_count_total": state["reroute_count_total"] + 1,
+        "reroute_count_total": state.get("reroute_count_total", 0) + 1,
         "reroute_targets": [],
         "verification_status": "pending",
     }

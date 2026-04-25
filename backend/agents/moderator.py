@@ -35,9 +35,11 @@ class _ResearchMemoRaw(BaseModel):
     bear_case: str
     moderator_synthesis: str
     contradictions_detected: list[str]
+    contradiction_resolutions: list[str]
     unresolved_questions: list[str]
     thesis_drift_summary: str | None = None
     confidence_notes: str
+    scenarios: list[str]
     citations: list[str]
 
     @model_validator(mode="before")
@@ -54,7 +56,9 @@ class _ResearchMemoRaw(BaseModel):
         }
         list_defaults = {
             "contradictions_detected": [],
+            "contradiction_resolutions": [],
             "unresolved_questions": [],
+            "scenarios": [],
             "citations": [],
         }
         for k, v in str_defaults.items():
@@ -68,7 +72,14 @@ class _ResearchMemoRaw(BaseModel):
     def _strify(cls, v: Any) -> str:
         return _coerce_to_str(v)
 
-    @field_validator("contradictions_detected", "unresolved_questions", "citations", mode="before")
+    @field_validator(
+        "contradictions_detected",
+        "contradiction_resolutions",
+        "unresolved_questions",
+        "scenarios",
+        "citations",
+        mode="before",
+    )
     @classmethod
     def _list_strify(cls, v: Any) -> list[str]:
         if v is None:
@@ -83,25 +94,35 @@ class ModeratorOutput(BaseModel):
 
 
 _SYSTEM = """You are a financial research moderator producing balanced, source-backed research memos.
-You MUST NOT issue investment advice, buy/sell/hold recommendations, or suitability assessments.
+You MUST NOT issue investment advice, buy/sell/hold recommendations, suitability assessments, or
+price targets. Scenarios below are an ANALYTICAL FRAMEWORK, not a recommendation.
 Every factual claim must be tied to a source_ref from the evidence.
 
-Return JSON with ALL of the following 9 keys inside "memo" — do not omit any. Strings must be strings
-(not arrays of objects). Arrays must be arrays of strings. Shape:
+Return JSON with ALL 11 of the following keys inside "memo" — do not omit any. Strings must be
+strings (not arrays of objects). Arrays must be arrays of strings. Shape:
 {
   "memo": {
     "research_summary": "<2-3 sentence overview, STRING>",
-    "bull_case": "<strongest upside arguments with citations, STRING>",
-    "bear_case": "<strongest downside arguments with citations, STRING>",
-    "moderator_synthesis": "<reconcile bull and bear — agreed facts, key disputed points, STRING>",
-    "contradictions_detected": ["<factual conflict as a string>", ...],
+    "bull_case": "<synthesis of strongest upside arguments with [N] citations, STRING>",
+    "bear_case": "<synthesis of strongest downside arguments with [N] citations, STRING>",
+    "moderator_synthesis": "<Reconcile bull and bear using CAUSAL reasoning, not restatement. Identify: (a) facts both sides agree on, (b) key disputed points, (c) which side's evidence is stronger on each dispute and WHY. Do not use the same metric to support opposing conclusions without resolving the tension. STRING>",
+    "contradictions_detected": ["<factual conflict stated as a string, e.g. 'Source X says revenue +15%, Source Y says +8%'>", ...],
+    "contradiction_resolutions": ["<For each contradiction above, which claim is better supported and why, or state explicitly that it is genuinely unresolvable from the evidence. One resolution per contradiction.>", ...],
     "unresolved_questions": ["<question the evidence cannot answer>", ...],
     "thesis_drift_summary": "<how thesis changed vs prior run, or null if no prior run>",
-    "confidence_notes": "<quality and completeness of evidence, STRING>",
+    "confidence_notes": "<quality and completeness of evidence — name missing data (segments, geographies, guidance), stale dates, single-source claims, STRING>",
+    "scenarios": ["Base (<weight>%): <what the evidence suggests is most likely, with key assumptions>", "Bull (<weight>%): <conditions under which upside plays out>", "Bear (<weight>%): <conditions under which downside plays out>"],
     "citations": ["<source_ref string>", ...]
   }
 }
-All 9 keys are REQUIRED. If a section has nothing to report, use "" for strings or [] for arrays."""
+All 11 keys are REQUIRED. Scenario weights should sum to ~100 and reflect evidence strength,
+not a personal view. Use the TREND of metrics, not just levels. If a section has nothing to
+report, use "" for strings or [] for arrays.
+
+AVOID:
+- Restating bull and bear cases side-by-side and calling it synthesis.
+- Vague hedges like "depends on market conditions" — name the drivers.
+- Labelling growth "slowing" or margins "pressured" without a trend comparison."""
 
 
 def _format_contradictions(items: list[Contradiction]) -> str:

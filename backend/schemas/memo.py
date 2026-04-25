@@ -13,7 +13,9 @@ class ResearchMemo(BaseModel):
     bear_case: str
     moderator_synthesis: str
     contradictions_detected: list[str]
+    contradiction_resolutions: list[str] = Field(default_factory=list)
     unresolved_questions: list[str]
     thesis_drift_summary: Optional[str] = None
     confidence_notes: str
+    scenarios: list[str] = Field(default_factory=list)
     citations: list[str]

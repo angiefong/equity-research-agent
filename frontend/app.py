@@ -157,10 +157,18 @@ with tab_memo:
         st.markdown(f"**Bull Case:** {memo.get('bull_case', '')}")
         st.markdown(f"**Bear Case:** {memo.get('bear_case', '')}")
         st.markdown(f"**Synthesis:** {memo.get('moderator_synthesis', '')}")
+        if memo.get("scenarios"):
+            st.markdown("**Scenarios (analytical framework, not advice):**")
+            for s in memo["scenarios"]:
+                st.markdown(f"- {s}")
         if memo.get("contradictions_detected"):
             st.markdown("**Contradictions Detected:**")
             for c in memo["contradictions_detected"]:
                 st.markdown(f"- {c}")
+        if memo.get("contradiction_resolutions"):
+            st.markdown("**Contradiction Resolutions:**")
+            for r in memo["contradiction_resolutions"]:
+                st.markdown(f"- {r}")
         if memo.get("unresolved_questions"):
             st.markdown("**Unresolved Questions:**")
             for q in memo["unresolved_questions"]:
