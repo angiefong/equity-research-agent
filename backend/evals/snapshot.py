@@ -112,10 +112,8 @@ def epoch_snapshot(epoch: str, ticker: str, root: Path | None = None):
         yield fixture_dir
 
 
-def refresh_epoch(epoch: str, ticker_set: str = "full") -> None:
+def refresh_epoch(epoch: str) -> None:
     """CLI-callable: invalidate fixtures for an epoch by deleting the directory."""
-    from backend.evals.config import TICKER_SETS
-
     base = Path("runtime_data/eval_fixtures") / epoch
     if base.exists():
         import shutil
@@ -132,7 +130,6 @@ if __name__ == "__main__":
     sub = p.add_subparsers(dest="cmd", required=True)
     refresh = sub.add_parser("refresh", help="Clear fixtures for an epoch")
     refresh.add_argument("--epoch", required=True)
-    refresh.add_argument("--tickers", default="full")
     args = p.parse_args()
     if args.cmd == "refresh":
-        refresh_epoch(args.epoch, args.tickers)
+        refresh_epoch(args.epoch)
