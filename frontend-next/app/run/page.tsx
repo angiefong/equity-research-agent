@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useRunStream } from "@/lib/useRunStream";
@@ -26,6 +26,12 @@ function RunPageInner() {
   const url = ticker && query ? api.streamUrl(ticker, query) : null;
   const state = useRunStream(url);
 
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // Reflect run_id into the URL once so it's shareable, without re-mounting.
   useEffect(() => {
     if (state.runId && state.runId !== urlRunId) {
@@ -36,9 +42,11 @@ function RunPageInner() {
 
   // On completion, navigate to the memo viewer.
   useEffect(() => {
-    if (state.status === "completed" && state.runId) {
+    if (state.status !== "completed" || !state.runId) return;
+    const id = setTimeout(() => {
       router.replace(`/memo/${state.runId}`);
-    }
+    }, 800);
+    return () => clearTimeout(id);
   }, [state.status, state.runId, router]);
 
   const elapsed = state.startedAt ? Math.round((Date.now() - state.startedAt) / 1000) : 0;
