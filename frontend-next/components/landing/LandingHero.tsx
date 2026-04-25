@@ -17,7 +17,7 @@ export function LandingHero() {
   function start() {
     if (!ticker.trim() || !query.trim()) return;
     const params = new URLSearchParams({ ticker, query });
-    router.push(`/run/new?${params.toString()}`);
+    router.push(`/run?${params.toString()}`);
   }
 
   return (
