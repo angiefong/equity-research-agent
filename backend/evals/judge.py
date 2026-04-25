@@ -1,7 +1,6 @@
 """LLM-as-judge: two Sonnet calls per ticker (evidence quality, memo quality)."""
 from __future__ import annotations
 import json
-from typing import Any
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
@@ -52,7 +51,7 @@ def score_evidence(ticker: str, evidence_summary: str) -> EvidenceEval:
 def score_memo(memo: dict, evidence_summary: str) -> MemoEval:
     chain = _build_memo_chain()
     return chain.invoke({
-        "memo_json": json.dumps(memo, indent=2),
+        "memo_json": json.dumps(memo, indent=2, default=str),
         "evidence_summary": evidence_summary,
     })
 

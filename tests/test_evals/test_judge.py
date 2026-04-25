@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+import datetime as _dt
 import pytest
 from backend.evals import judge
 from backend.evals.rubric import EvidenceEval, MemoEval
@@ -56,3 +57,18 @@ def test_summarize_evidence_truncates_long_input():
     summary = judge.summarize_evidence(spans, max_chars=500)
     assert len(summary) <= 600   # allow header overhead
     assert summary.startswith("Evidence (")
+
+
+def test_score_memo_handles_datetime_in_memo(sample_evidence_summary, fake_memo_eval, monkeypatch):
+    """Real ResearchMemo dicts contain datetime fields; json.dumps must not crash on them."""
+    fake_chain = MagicMock()
+    fake_chain.invoke.return_value = fake_memo_eval
+
+    monkeypatch.setattr(judge, "_build_memo_chain", lambda: fake_chain)
+    memo_with_dt = {
+        "ticker": "AAPL",
+        "timestamp": _dt.datetime(2026, 4, 25, 12, 0, 0),
+        "synthesis": "x",
+    }
+    out = judge.score_memo(memo=memo_with_dt, evidence_summary=sample_evidence_summary)
+    assert isinstance(out, MemoEval)
