@@ -12,6 +12,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.100.1",
     "next": "14.2.35",
     "react": "^18",
     "react-dom": "^18"
