@@ -38,7 +38,7 @@ def parent_run(tags: dict[str, str], params: dict[str, Any]):
 
 
 @contextmanager
-def ticker_run(ticker: str, parent_run_id: str):
+def ticker_run(ticker: str):
     with mlflow.start_run(nested=True, run_name=ticker, tags={"ticker": ticker}) as run:
         yield run
 
