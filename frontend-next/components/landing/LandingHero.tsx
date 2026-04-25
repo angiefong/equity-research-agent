@@ -15,6 +15,7 @@ export function LandingHero() {
   const [query, setQuery] = useState("Build a bull and bear case for AAPL");
 
   function start() {
+    if (!ticker.trim() || !query.trim()) return;
     const params = new URLSearchParams({ ticker, query });
     router.push(`/run/new?${params.toString()}`);
   }
@@ -28,7 +29,10 @@ export function LandingHero() {
       <p className="text-[14px] text-[#444] leading-[1.55] max-w-[56ch] mb-5">
         Type a ticker and a question. Watch fourteen specialized agents fetch filings, news, and market data, debate bull and bear, surface contradictions, and assemble a verifiable research memo.
       </p>
-      <div className="grid grid-cols-[120px_1fr_auto] border-2 border-ink">
+      <form
+        onSubmit={(e) => { e.preventDefault(); start(); }}
+        className="grid grid-cols-[120px_1fr_auto] border-2 border-ink"
+      >
         <input
           value={ticker}
           onChange={e => setTicker(e.target.value.toUpperCase())}
@@ -42,19 +46,30 @@ export function LandingHero() {
           placeholder="Build a bull and bear case for AAPL"
         />
         <button
-          onClick={start}
-          className="bg-ink text-paper font-extrabold text-[11px] uppercase tracking-[1.5px] px-6 hover:bg-accent hover:text-ink"
+          type="submit"
+          disabled={!ticker.trim() || !query.trim()}
+          className="bg-ink text-paper font-extrabold text-[11px] uppercase tracking-[1.5px] px-6 hover:bg-accent hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Run Research →
         </button>
-      </div>
+      </form>
       <div className="flex gap-2 mt-3 flex-wrap">
         {EXAMPLES.map(ex => (
-          <span key={ex} className="font-mono text-[10px] px-2 py-1 border border-ink bg-inset cursor-pointer hover:bg-accent">
+          <button
+            key={ex}
+            type="button"
+            onClick={() => { const { t, q } = pickExample(ex); setTicker(t); setQuery(q); }}
+            className="font-mono text-[10px] px-2 py-1 border border-ink bg-inset cursor-pointer hover:bg-accent text-left"
+          >
             {ex}
-          </span>
+          </button>
         ))}
       </div>
     </div>
   );
+}
+
+function pickExample(ex: string) {
+  const [t, ...rest] = ex.split(" — ");
+  return { t: t.trim().toUpperCase(), q: rest.join(" — ").trim() };
 }
