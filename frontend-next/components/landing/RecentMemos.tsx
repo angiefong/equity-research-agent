@@ -17,6 +17,13 @@ function pillClass(verdict: string): string {
   return "bg-[#f5f5f5]";
 }
 
+function fmtDate(s: string | undefined | null): string {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toISOString().slice(0, 10);
+}
+
 export function RecentMemos({ runs }: { runs: RunSummary[] }) {
   const padded = runs.slice(0, 3);
   return (
@@ -39,7 +46,7 @@ export function RecentMemos({ runs }: { runs: RunSummary[] }) {
             <div className="text-[11px] leading-[1.4] text-[#333] mt-2">{r.lede}</div>
             <MiniBar bw={r.bull_weight ?? 0} br={r.bear_weight ?? 0} />
             <div className="font-mono text-[9px] text-muted mt-2">
-              {new Date(r.created_at).toISOString().slice(0, 10)} · {Math.round(r.duration_s)}s · {r.agent_count} agents
+              {fmtDate(r.created_at)} · {Math.round(r.duration_s ?? 0)}s · {r.agent_count} agents
             </div>
           </Link>
         ))}
