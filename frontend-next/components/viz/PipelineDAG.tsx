@@ -3,16 +3,20 @@ import type { AgentStatus } from "@/lib/types";
 type AgentMap = Record<string, { status: AgentStatus; elapsedS?: number }>;
 
 const LAYOUT = {
-  supervisor:            { x: 20,  y: 100, w: 80, h: 40 },
-  market_data:           { x: 160, y: 20,  w: 80, h: 40, label: "MARKET" },
-  filings:               { x: 160, y: 70,  w: 80, h: 40 },
-  news:                  { x: 160, y: 130, w: 80, h: 40 },
-  quant_data:            { x: 160, y: 180, w: 80, h: 40, label: "QUANT" },
-  quant_interpretation:  { x: 300, y: 100, w: 100, h: 40, label: "QUANT INTERP" },
-  evidence_contradiction:{ x: 460, y: 100, w: 80, h: 40, label: "EV CONTR" },
-  bull:                  { x: 600, y: 50,  w: 80, h: 40 },
-  bear:                  { x: 600, y: 150, w: 80, h: 40 },
-  verifier:              { x: 720, y: 100, w: 60, h: 40 },
+  supervisor:            { x: 10,  y: 110, w: 70, h: 40 },
+  market_data:           { x: 105, y: 20,  w: 75, h: 40, label: "MARKET" },
+  filings:               { x: 105, y: 70,  w: 75, h: 40 },
+  news:                  { x: 105, y: 140, w: 75, h: 40 },
+  quant_data:            { x: 105, y: 190, w: 75, h: 40, label: "QUANT" },
+  quant_interpretation:  { x: 205, y: 110, w: 85, h: 40, label: "Q.INTERP" },
+  evidence_contradiction:{ x: 315, y: 110, w: 70, h: 40, label: "EV CONTR" },
+  bull:                  { x: 415, y: 60,  w: 60, h: 40 },
+  bear:                  { x: 415, y: 160, w: 60, h: 40 },
+  debate_contradiction:  { x: 500, y: 110, w: 70, h: 40, label: "DEBATE" },
+  verifier:              { x: 600, y: 110, w: 65, h: 40 },
+  reroute:               { x: 600, y: 200, w: 65, h: 40 },
+  thesis_replay:         { x: 695, y: 110, w: 75, h: 40, label: "REPLAY" },
+  moderator:             { x: 800, y: 110, w: 75, h: 40 },
 } as const;
 
 const EDGES: { from: keyof typeof LAYOUT; to: keyof typeof LAYOUT }[] = [
@@ -27,8 +31,12 @@ const EDGES: { from: keyof typeof LAYOUT; to: keyof typeof LAYOUT }[] = [
   { from: "quant_interpretation", to: "evidence_contradiction" },
   { from: "evidence_contradiction", to: "bull" },
   { from: "evidence_contradiction", to: "bear" },
-  { from: "bull", to: "verifier" },
-  { from: "bear", to: "verifier" },
+  { from: "bull", to: "debate_contradiction" },
+  { from: "bear", to: "debate_contradiction" },
+  { from: "debate_contradiction", to: "verifier" },
+  { from: "verifier", to: "reroute" },
+  { from: "verifier", to: "thesis_replay" },
+  { from: "thesis_replay", to: "moderator" },
 ];
 
 function fillFor(status: AgentStatus | undefined): string {
@@ -53,7 +61,7 @@ function edgePath(a: typeof LAYOUT[keyof typeof LAYOUT], b: typeof LAYOUT[keyof 
 export function PipelineDAG({ agents }: { agents: AgentMap }) {
   return (
     <div className="bg-paper border-[1.5px] border-ink p-3 h-[280px]">
-      <svg viewBox="0 0 800 240" className="w-full h-full">
+      <svg viewBox="0 0 890 260" className="w-full h-full">
         {EDGES.map((e, i) => {
           const fromStatus = agents[e.from]?.status;
           const toStatus = agents[e.to]?.status;
