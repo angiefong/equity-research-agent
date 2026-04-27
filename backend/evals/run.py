@@ -42,6 +42,14 @@ def _git_branch() -> str:
         return "unknown"
 
 
+def _dagshub_url() -> str:
+    owner = os.environ.get("DAGSHUB_REPO_OWNER")
+    repo = os.environ.get("DAGSHUB_REPO_NAME")
+    if owner and repo:
+        return f"https://dagshub.com/{owner}/{repo}.mlflow"
+    return os.environ.get("MLFLOW_TRACKING_URI", "")
+
+
 def _agent_model_in_use() -> str:
     """Read the actual model from backend.agents.llm at runtime."""
     try:
@@ -180,7 +188,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         baseline_avgs = baseline.data.metrics if baseline else None
 
-        dagshub_url = os.environ.get("MLFLOW_TRACKING_URI", "")
+        dagshub_url = _dagshub_url()
         run_meta = {
             "branch": tags["branch"],
             "epoch": epoch,

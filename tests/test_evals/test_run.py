@@ -30,7 +30,7 @@ def _stub_full_eval() -> FullEval:
 
 @pytest.fixture(autouse=True)
 def stub_env(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "stub")
+    monkeypatch.setenv("ANTHROPIC_KEY", "stub")
     monkeypatch.setenv("GROQ_KEY", "stub")
 
 

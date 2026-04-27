@@ -1,6 +1,7 @@
 """LLM-as-judge: two Sonnet calls per ticker (evidence quality, memo quality)."""
 from __future__ import annotations
 import json
+import os
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
@@ -16,7 +17,11 @@ from backend.evals.rubric import (
 
 
 def _judge_llm():
-    return ChatAnthropic(model=resolve_judge_model(), temperature=0)
+    return ChatAnthropic(
+        model=resolve_judge_model(),
+        temperature=0,
+        api_key=os.environ["ANTHROPIC_KEY"],
+    )
 
 
 def _build_evidence_chain():

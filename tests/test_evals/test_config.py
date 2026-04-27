@@ -15,21 +15,21 @@ def test_defaults_present():
 
 
 def test_validate_env_missing_anthropic_raises(monkeypatch):
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_KEY", raising=False)
     monkeypatch.setenv("GROQ_KEY", "x")
-    with pytest.raises(EnvironmentError, match="ANTHROPIC_API_KEY"):
+    with pytest.raises(EnvironmentError, match="ANTHROPIC_KEY"):
         config.validate_env()
 
 
 def test_validate_env_missing_groq_raises(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    monkeypatch.setenv("ANTHROPIC_KEY", "x")
     monkeypatch.delenv("GROQ_KEY", raising=False)
     with pytest.raises(EnvironmentError, match="GROQ_KEY"):
         config.validate_env()
 
 
 def test_validate_env_passes_with_required_keys(monkeypatch):
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "x")
+    monkeypatch.setenv("ANTHROPIC_KEY", "x")
     monkeypatch.setenv("GROQ_KEY", "x")
     config.validate_env()  # no exception
 

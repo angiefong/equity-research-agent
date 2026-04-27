@@ -22,10 +22,21 @@ def _mlflow_client():
 
 
 def setup_tracking() -> None:
-    """Set tracking URI from env or default to local mlruns/."""
-    uri = os.environ.get("MLFLOW_TRACKING_URI")
-    if uri:
-        mlflow.set_tracking_uri(uri)
+    """Set tracking URI from DagsHub env vars, falling back to local mlruns/."""
+    owner = os.environ.get("DAGSHUB_REPO_OWNER")
+    repo = os.environ.get("DAGSHUB_REPO_NAME")
+    token = os.environ.get("DAGSHUB_TOKEN")
+    explicit_uri = os.environ.get("MLFLOW_TRACKING_URI")
+
+    if explicit_uri:
+        mlflow.set_tracking_uri(explicit_uri)
+    elif owner and repo and token:
+        mlflow.set_tracking_uri(f"https://dagshub.com/{owner}/{repo}.mlflow")
+        # mlflow client reads these env vars for HTTP basic auth:
+        os.environ.setdefault("MLFLOW_TRACKING_USERNAME", owner)
+        os.environ.setdefault("MLFLOW_TRACKING_PASSWORD", token)
+    # else: mlflow falls back to local ./mlruns
+
     mlflow.set_experiment(EXPERIMENT_NAME)
 
 
