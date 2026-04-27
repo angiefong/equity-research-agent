@@ -22,6 +22,7 @@ from backend.evals.rubric import FullEval
 
 EXPERIMENT_NAME = "equity-research-agent"
 RUNTIME_ROOT = Path("runtime_data/eval_runs")
+DEFAULT_QUERY_TEMPLATE = "Build a bull and bear case for {ticker}"
 
 
 def _git_sha() -> str:
@@ -66,12 +67,25 @@ def _agent_model_in_use() -> str:
 
 
 def _run_pipeline_for_ticker(ticker: str, epoch: str) -> dict:
-    """Invoke the LangGraph pipeline for one ticker, with snapshot replay active."""
+    """Invoke the LangGraph pipeline for one ticker, with snapshot replay active.
+
+    Returns a dict containing both the OutputState fields AND the evidence list,
+    so the judge can score both memo and evidence quality.
+    """
+    import uuid
     from backend.graph.builder import build_graph
-    graph = build_graph()
+    from langgraph.checkpoint.memory import MemorySaver
+
+    graph = build_graph(checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": str(uuid.uuid4())}}
+    query = DEFAULT_QUERY_TEMPLATE.format(ticker=ticker)
     with snapshot.epoch_snapshot(epoch=epoch, ticker=ticker):
-        result = graph.invoke({"ticker": ticker})
-    return result
+        graph.invoke({"ticker": ticker, "query": query}, config=config)
+        full_state = graph.get_state(config).values
+    return {
+        "final_memo": full_state.get("final_memo"),
+        "evidence": full_state.get("evidence", []),
+    }
 
 
 @contextmanager
@@ -131,10 +145,11 @@ def main(argv: list[str] | None = None) -> int:
         for ticker in tickers:
             try:
                 state = _run_pipeline_for_ticker(ticker, epoch)
-                memo = state.get("memo") or state.get("research_memo") or state
+                final_memo = state.get("final_memo")
+                if final_memo is None:
+                    raise RuntimeError(f"pipeline did not produce final_memo for {ticker}")
                 evidence_spans = state.get("evidence", [])
-                if hasattr(memo, "model_dump"):
-                    memo = memo.model_dump()
+                memo = final_memo.model_dump() if hasattr(final_memo, "model_dump") else final_memo
                 evidence_dicts = [
                     e.model_dump() if hasattr(e, "model_dump") else e
                     for e in evidence_spans

@@ -61,7 +61,21 @@ def test_run_quick_invokes_pipeline_per_ticker(monkeypatch, tmp_path):
 
     def fake_run_pipeline(ticker, epoch):
         pipeline_calls.append(ticker)
-        return {"memo": {"ticker": ticker}, "evidence": [{"text": "x", "source_ref": "y"}]}
+        from backend.schemas.memo import ResearchMemo
+        from backend.schemas.evidence import EvidenceSpan
+        fake_memo = ResearchMemo(
+            ticker=ticker,
+            research_summary=f"test summary for {ticker}",
+            bull_case="bull",
+            bear_case="bear",
+            moderator_synthesis="synthesis",
+            contradictions_detected=[],
+            unresolved_questions=[],
+            confidence_notes="notes",
+            citations=[],
+        )
+        fake_evidence = [EvidenceSpan(source_ref="news:tavily:test", text="x", agent_origin="news")]
+        return {"final_memo": fake_memo, "evidence": fake_evidence}
 
     def fake_score_evidence(ticker, evidence_summary):
         return _stub_full_eval().evidence
@@ -98,7 +112,19 @@ def test_run_partial_failure_exits_nonzero(monkeypatch, tmp_path):
     def fake_run_pipeline(ticker, epoch):
         if ticker == "RIVN":
             raise RuntimeError("pipeline boom")
-        return {"memo": {"ticker": ticker}, "evidence": []}
+        from backend.schemas.memo import ResearchMemo
+        fake_memo = ResearchMemo(
+            ticker=ticker,
+            research_summary=f"test summary for {ticker}",
+            bull_case="bull",
+            bear_case="bear",
+            moderator_synthesis="synthesis",
+            contradictions_detected=[],
+            unresolved_questions=[],
+            confidence_notes="notes",
+            citations=[],
+        )
+        return {"final_memo": fake_memo, "evidence": []}
 
     def fake_score_evidence(ticker, es):
         return _stub_full_eval().evidence
