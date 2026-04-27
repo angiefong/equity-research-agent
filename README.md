@@ -14,6 +14,7 @@ Every change to this project is measured against an 8-metric LLM-as-judge rubric
 
 - **2026-04-25** — eval harness scaffolded; 14 commits, 97 tests, MLflow logging to DagsHub.
 - **2026-04-27** — first end-to-end run on `--quick` set (AAPL, RIVN). Harness infra validated end-to-end; both tickers failed at the pipeline layer (`llama-3.1-8b-instant` exhausted output tokens generating structured JSON; rate-limited on second ticker). Pipeline-level model upgrade is the next bottleneck. ([run](https://dagshub.com/fwtangie/equity-research-agent.mlflow/#/experiments/0/runs/20ea73d9e01444108f32736bd944b390))
+- **2026-04-27** — agent upgraded to `llama-3.3-70b-versatile` + judge `max_tokens=4096`. **First real baseline:** avg overall **2.21/5** on quick set (AAPL: 2.00, RIVN: 2.43). Judge surfaced concrete analytical errors (e.g., AAPL bull case had inverted P/E comparison; RIVN bull misused negative EV/EBITDA as bullish). ([run](https://dagshub.com/fwtangie/equity-research-agent.mlflow/#/experiments/0/runs/7294cee0cdd54203bfec82eb2b73ca61))
 
 ## What it does
 
