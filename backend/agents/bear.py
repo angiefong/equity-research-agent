@@ -46,6 +46,16 @@ AVOID:
 - Level comparisons without trend — a high P/E alone is not bearish without growth context.
 - Using a 90-day price decline as a thesis — name the fundamental driver, not the price action.
 - Flipping the same metric the bull uses without resolving the tension.
+- Treating a NEGATIVE ratio as bullish or bearish in the same direction as a positive one.
+  EV/EBITDA below zero, P/E below zero, etc. mean the underlying is negative — these CANNOT be
+  compared on the same number line as positive multiples. If the only available multiple is
+  negative, state the underlying loss directly ("EBITDA is -$X.YB") and discuss the path to
+  positive territory; do not call the ratio "cheaper" or "expensive".
+
+ARITHMETIC SANITY (CRITICAL — before submitting any cross-ticker comparison):
+If you make a directional claim about two numbers ("X has HIGHER margin than peer Y at..."), the
+math must match the direction word. State direction words only after verifying they match the
+arithmetic. If your claim's direction contradicts the numbers, drop the claim.
 
 Return JSON with exactly ONE top-level key: "debate_points" (an array). Do NOT add outer wrappers
 like "bull_case" or "bear_case" — this is the BEAR agent only, so only return bear points. Report at

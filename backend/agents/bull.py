@@ -46,6 +46,12 @@ AVOID:
 - Raw P/E comparisons without growth context.
 - Restating evidence as a claim — synthesize into a causal argument.
 
+ARITHMETIC SANITY (CRITICAL — before submitting any cross-ticker comparison):
+If you make a directional claim about two numbers (e.g. "AAPL P/E 34.35 is LOWER than GOOGL P/E
+31.86"), the math must match the direction word. 34.35 > 31.86, so AAPL would be HIGHER. State
+the direction word (higher / lower / cheaper / more expensive) only after verifying it matches
+the numbers. If your claim's direction contradicts the arithmetic, drop the claim — do NOT submit.
+
 Return JSON with exactly ONE top-level key: "debate_points" (an array). Do NOT add outer wrappers
 like "bull_case" or "bear_case" — this is the BULL agent only, so only return bull points. Report at
 most 5 strongest points. Shape:
