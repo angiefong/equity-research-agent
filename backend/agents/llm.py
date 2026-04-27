@@ -10,7 +10,7 @@ def get_llm() -> ChatGroq:
     global _llm
     if _llm is None:
         _llm = ChatGroq(
-            model="llama-3.1-8b-instant",
+            model="llama-3.3-70b-versatile",
             temperature=0.1,
             api_key=os.environ["GROQ_KEY"],
         )

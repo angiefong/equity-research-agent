@@ -20,6 +20,7 @@ def _judge_llm():
     return ChatAnthropic(
         model=resolve_judge_model(),
         temperature=0,
+        max_tokens=4096,
         api_key=os.environ["ANTHROPIC_KEY"],
     )
 
