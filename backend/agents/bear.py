@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, model_validator
 from backend.agents._prompts import format_evidence
 from backend.agents.llm import get_structured_llm
-from backend.graph.state import AgentState
+from backend.graph.state import AgentState, resolve_query
 from backend.schemas.debate import DebatePoint, DebateSide
 
 
@@ -68,7 +68,7 @@ def bear_agent(state: AgentState) -> dict:
     evidence_text = format_evidence(state["evidence"])
     result = llm.invoke([
         {"role": "system", "content": _SYSTEM},
-        {"role": "user", "content": f"Ticker: {state['ticker']}\nQuery: {state['query']}\n\nEvidence:\n{evidence_text}"},
+        {"role": "user", "content": f"Ticker: {state['ticker']}\nQuery: {resolve_query(state)}\n\nEvidence:\n{evidence_text}"},
     ])
     points = [DebatePoint(**{**p.model_dump(), "side": DebateSide.BEAR}) for p in result.debate_points]
     return {"bear_points": points}

@@ -2,7 +2,7 @@ from typing import Any
 from pydantic import BaseModel, field_validator, model_validator
 from backend.agents._prompts import format_evidence
 from backend.agents.llm import get_structured_llm
-from backend.graph.state import AgentState
+from backend.graph.state import AgentState, resolve_query
 from backend.persistence.snapshot_store import save_snapshot
 from backend.schemas.contradiction import Contradiction
 from backend.schemas.debate import DebatePoint
@@ -158,7 +158,7 @@ def moderator_agent(state: AgentState) -> dict:
     result = llm.invoke([
         {"role": "system", "content": _SYSTEM},
         {"role": "user", "content": (
-            f"Ticker: {state['ticker']}\nQuery: {state['query']}\n\n"
+            f"Ticker: {state['ticker']}\nQuery: {resolve_query(state)}\n\n"
             f"Evidence:\n{evidence_text}\n\n"
             f"Bull case:\n{bull_text}\n\n"
             f"Bear case:\n{bear_text}\n\n"

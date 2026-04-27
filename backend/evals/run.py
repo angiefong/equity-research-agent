@@ -22,7 +22,6 @@ from backend.evals.rubric import FullEval
 
 EXPERIMENT_NAME = "equity-research-agent"
 RUNTIME_ROOT = Path("runtime_data/eval_runs")
-DEFAULT_QUERY_TEMPLATE = "Build a bull and bear case for {ticker}"
 
 
 def _git_sha() -> str:
@@ -78,9 +77,8 @@ def _run_pipeline_for_ticker(ticker: str, epoch: str) -> dict:
 
     graph = build_graph(checkpointer=MemorySaver())
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
-    query = DEFAULT_QUERY_TEMPLATE.format(ticker=ticker)
     with snapshot.epoch_snapshot(epoch=epoch, ticker=ticker):
-        graph.invoke({"ticker": ticker, "query": query}, config=config)
+        graph.invoke({"ticker": ticker}, config=config)
         full_state = graph.get_state(config).values
     return {
         "final_memo": full_state.get("final_memo"),

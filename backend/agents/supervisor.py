@@ -1,7 +1,7 @@
 from typing import Literal
 from pydantic import BaseModel
 from backend.agents.llm import get_structured_llm
-from backend.graph.state import AgentState
+from backend.graph.state import AgentState, resolve_query
 
 VALID_QUERY_TYPES = Literal["earnings", "bull_bear", "thesis_drift"]
 
@@ -23,6 +23,6 @@ def supervisor_agent(state: AgentState) -> dict:
     llm = get_structured_llm(SupervisorOutput)
     result = llm.invoke([
         {"role": "system", "content": _SYSTEM},
-        {"role": "user", "content": f"Query: {state['query']}\nTicker: {state['ticker']}"},
+        {"role": "user", "content": f"Query: {resolve_query(state)}\nTicker: {state['ticker']}"},
     ])
     return {"query_type": result.query_type}

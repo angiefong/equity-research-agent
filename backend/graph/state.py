@@ -1,5 +1,5 @@
 from typing import Annotated, Literal, Optional
-from typing_extensions import TypedDict
+from typing_extensions import NotRequired, TypedDict
 
 from backend.schemas.contradiction import Contradiction
 from backend.schemas.debate import DebatePoint
@@ -11,8 +11,8 @@ from backend.graph.reducers import dedupe_by_id
 
 
 class InputState(TypedDict):
-    query: str
     ticker: str
+    query: NotRequired[str]
 
 
 class AgentState(TypedDict):
@@ -39,3 +39,14 @@ class OutputState(TypedDict):
     thesis_delta: Optional[ThesisDelta]
     evidence_contradictions: list[Contradiction]
     debate_contradictions: list[Contradiction]
+
+
+DEFAULT_QUERY_TEMPLATE = "Build a bull and bear case for {ticker}"
+
+
+def resolve_query(state: "AgentState | InputState") -> str:
+    """Return the user's query, or a default keyed off the ticker if absent."""
+    q = state.get("query")
+    if q:
+        return q
+    return DEFAULT_QUERY_TEMPLATE.format(ticker=state["ticker"])
