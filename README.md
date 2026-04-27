@@ -1,8 +1,18 @@
 # Equity Research Agent
 
+[![Evals](https://img.shields.io/badge/evals-DagsHub-blue)](https://dagshub.com/<your-dagshub-user>/equity-research-agent.mlflow)
+
 A verifiable multi-agent equity research system that produces source-backed research memos with bull/bear debate, contradiction detection, and thesis drift tracking.
 
 > **Status:** In development — Phase 1 (multi-agent pipeline) in progress.
+
+## Evaluation
+
+Every change to this project is measured against an 8-metric LLM-as-judge rubric and tracked on DagsHub. See [`docs/evaluation.md`](docs/evaluation.md) for the rubric, harness architecture, and methodology.
+
+### Lift log
+
+- **2026-04-25** — eval harness scaffolded; baseline run pending.
 
 ## What it does
 
@@ -53,12 +63,6 @@ FastAPI (SSE) → LangGraph StateGraph → Streamlit Dashboard
 | Experiment tracking | MLflow → DagsHub |
 | Deployment | Railway (2 services) |
 | Model registry | HuggingFace Hub |
-
-## Evaluation
-
-Three-way comparison: single-agent baseline vs multi-agent + base model vs multi-agent + fine-tuned Moderator.
-
-Metrics: factual accuracy, citation coverage, unsupported claim rate, groundedness (manual rubric /15).
 
 ## Setup
 
