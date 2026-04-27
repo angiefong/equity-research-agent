@@ -1,6 +1,6 @@
 # Equity Research Agent
 
-[![Evals](https://img.shields.io/badge/evals-DagsHub-blue)](https://dagshub.com/<your-dagshub-user>/equity-research-agent.mlflow)
+[![Evals](https://img.shields.io/badge/evals-DagsHub-blue)](https://dagshub.com/fwtangie/equity-research-agent.mlflow)
 
 A verifiable multi-agent equity research system that produces source-backed research memos with bull/bear debate, contradiction detection, and thesis drift tracking.
 
@@ -12,7 +12,8 @@ Every change to this project is measured against an 8-metric LLM-as-judge rubric
 
 ### Lift log
 
-- **2026-04-25** — eval harness scaffolded; baseline run pending.
+- **2026-04-25** — eval harness scaffolded; 14 commits, 97 tests, MLflow logging to DagsHub.
+- **2026-04-27** — first end-to-end run on `--quick` set (AAPL, RIVN). Harness infra validated end-to-end; both tickers failed at the pipeline layer (`llama-3.1-8b-instant` exhausted output tokens generating structured JSON; rate-limited on second ticker). Pipeline-level model upgrade is the next bottleneck. ([run](https://dagshub.com/fwtangie/equity-research-agent.mlflow/#/experiments/0/runs/20ea73d9e01444108f32736bd944b390))
 
 ## What it does
 
