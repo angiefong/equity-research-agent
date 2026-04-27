@@ -43,7 +43,7 @@ class _StubTickerCtx:
 
 
 @pytest.fixture(autouse=True)
-def stub_mlflow(monkeypatch):
+def stub_mlflow(monkeypatch, tmp_path):
     """Prevent all real MLflow I/O in every test in this module."""
     monkeypatch.setattr(run_module.mlflow, "log_metrics", lambda *a, **k: None)
     monkeypatch.setattr(run_module.mlflow, "log_artifacts", lambda *a, **k: None)
@@ -53,6 +53,7 @@ def stub_mlflow(monkeypatch):
                         lambda ticker: _StubTickerCtx())
     monkeypatch.setattr(run_module.tracking, "find_baseline_run",
                         lambda *a, **k: None)
+    monkeypatch.setattr(run_module, "RUNTIME_ROOT", tmp_path)
 
 
 def test_run_quick_invokes_pipeline_per_ticker(monkeypatch, tmp_path):
@@ -78,6 +79,20 @@ def test_run_quick_invokes_pipeline_per_ticker(monkeypatch, tmp_path):
     assert pipeline_calls == ["AAPL", "RIVN"]
     assert exit_code == 0
 
+    # Verify per-ticker artifacts were written under tmp_path
+    run_dirs = list(tmp_path.iterdir())
+    assert len(run_dirs) == 1, "exactly one run dir per CLI invocation"
+    run_dir = run_dirs[0]
+    for ticker in ["AAPL", "RIVN"]:
+        tdir = run_dir / ticker
+        assert tdir.exists(), f"missing artifact dir for {ticker}"
+        assert (tdir / "memo.json").exists()
+        assert (tdir / "evidence_summary.txt").exists()
+        assert (tdir / "judge_memo_rationale.json").exists()
+        assert (tdir / "judge_evidence_rationale.json").exists()
+        assert (tdir / "missing_items.json").exists()
+    assert (run_dir / "summary.md").exists()
+
 
 def test_run_partial_failure_exits_nonzero(monkeypatch, tmp_path):
     def fake_run_pipeline(ticker, epoch):
@@ -99,6 +114,18 @@ def test_run_partial_failure_exits_nonzero(monkeypatch, tmp_path):
 
     exit_code = run_module.main(["--quick"])
     assert exit_code == 1
+
+    # Verify the failure path wrote error.txt for RIVN, NOT memo.json
+    run_dir = next(tmp_path.iterdir())
+    rivn_dir = run_dir / "RIVN"
+    assert rivn_dir.exists(), "RIVN dir should exist for failure tracking"
+    assert (rivn_dir / "error.txt").exists()
+    assert "RuntimeError" in (rivn_dir / "error.txt").read_text()
+    assert not (rivn_dir / "memo.json").exists(), "memo.json should not exist on failure"
+
+    # AAPL succeeded normally
+    aapl_dir = run_dir / "AAPL"
+    assert (aapl_dir / "memo.json").exists()
 
 
 class _StubMlflowCtx:
