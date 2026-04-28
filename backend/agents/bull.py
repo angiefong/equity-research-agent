@@ -65,7 +65,14 @@ most 5 strongest points. Shape:
     }
   ]
 }
-evidence_span_ids must be strings referencing the [N] labels in the evidence list."""
+
+ALL FOUR FIELDS ARE REQUIRED on every debate_point. Do NOT omit any.
+- "confidence" must be a numeric float between 0.0 and 1.0 (your subjective confidence in this
+  claim given the evidence). Never skip this field.
+- "evidence_span_ids" must be a SEPARATE ARRAY of string ids (e.g. ["1", "7"]) — citations
+  embedded inline in the rationale ("...impact. [6], [22]") DO NOT COUNT. The dedicated array
+  is required even if you also reference the same ids inline. evidence_span_ids must be strings
+  referencing the [N] labels in the evidence list."""
 
 
 def bull_agent(state: AgentState) -> dict:
