@@ -64,9 +64,9 @@ most 5 strongest points. Shape:
   "debate_points": [
     {
       "claim": "<specific, metric-anchored downside claim, one sentence>",
-      "rationale": "<driver → mechanism → financial impact → valuation impact, with [N] citations>",
+      "rationale": "<driver → mechanism → financial impact → valuation impact, with [source_ref] citations inline>",
       "confidence": <float 0.0-1.0>,
-      "evidence_span_ids": ["1", "3", "7"]
+      "evidence_span_ids": ["market:RIVN-financials:operating-margin", "news:tavily:rivn-q4-2025"]
     }
   ]
 }
@@ -74,9 +74,11 @@ most 5 strongest points. Shape:
 ALL FOUR FIELDS ARE REQUIRED on every debate_point. Do NOT omit any.
 - "confidence" must be a numeric float between 0.0 and 1.0 (your subjective confidence in this
   claim given the evidence). Never skip this field.
-- "evidence_span_ids" must be a SEPARATE ARRAY of string ids (e.g. ["1", "7"]) — citations
-  embedded inline in the rationale ("...impact. [6], [22]") DO NOT COUNT. The dedicated array
-  is required even if you also reference the same ids inline.
+- "evidence_span_ids" must be a SEPARATE ARRAY of source_ref strings copied verbatim from the
+  evidence's [source_ref] labels. Inline citations in the rationale ALSO use [source_ref] form
+  (e.g. "...50bps margin compression [market:RIVN-financials:operating-margin]"). DO NOT use
+  numeric citations like [1] or [N] — they cannot be verified against the citations list. Every
+  source_ref you cite must appear in the provided evidence; never invent one.
 evidence_span_ids must be strings referencing the [N] labels in the evidence list."""
 
 
