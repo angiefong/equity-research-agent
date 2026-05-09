@@ -119,6 +119,20 @@ All 11 keys are REQUIRED. Scenario weights should sum to ~100 and reflect eviden
 not a personal view. Use the TREND of metrics, not just levels. If a section has nothing to
 report, use "" for strings or [] for arrays.
 
+DATA RECENCY (CRITICAL — applies to bull_case, bear_case, and contradiction_resolutions):
+When the evidence contains multiple values for the same metric (e.g., revenue growth -25.8%
+in one span and +11.4% in another, or two different gross margin figures), ALWAYS use the
+MOST RECENT span and explicitly note the staleness of the older one in the resolution. Newer
+data supersedes older data unless the older span is explicitly more authoritative (e.g., a
+filed 10-Q vs. a third-party news estimate). Do not silently quote stale figures in bull_case
+or bear_case while the same metric has a newer evidence span available — the judge will catch
+this and it is the most common data-integrity failure.
+
+NUMERIC FORMAT CONSISTENCY:
+Pick ONE format per metric across the whole memo. Either ratios as decimals (gross margin
+0.0267) OR as percentages (gross margin 2.67%) — never mix. Decimals are more error-prone
+in prose; prefer percentages with the % sign for any margin / growth / yield figure.
+
 AVOID:
 - Restating bull and bear cases side-by-side and calling it synthesis.
 - Vague hedges like "depends on market conditions" — name the drivers.
