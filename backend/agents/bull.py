@@ -46,6 +46,12 @@ AVOID:
 - Raw P/E comparisons without growth context.
 - Restating evidence as a claim — synthesize into a causal argument.
 
+ARITHMETIC SANITY (CRITICAL — before submitting any cross-ticker comparison):
+If you make a directional claim about two numbers (e.g. "AAPL P/E 34.35 is LOWER than GOOGL P/E
+31.86"), the math must match the direction word. 34.35 > 31.86, so AAPL would be HIGHER. State
+the direction word (higher / lower / cheaper / more expensive) only after verifying it matches
+the numbers. If your claim's direction contradicts the arithmetic, drop the claim — do NOT submit.
+
 Return JSON with exactly ONE top-level key: "debate_points" (an array). Do NOT add outer wrappers
 like "bull_case" or "bear_case" — this is the BULL agent only, so only return bull points. Report at
 most 5 strongest points. Shape:
@@ -53,13 +59,22 @@ most 5 strongest points. Shape:
   "debate_points": [
     {
       "claim": "<specific, metric-anchored upside claim, one sentence>",
-      "rationale": "<driver → mechanism → financial impact → valuation impact, with [N] citations>",
+      "rationale": "<driver → mechanism → financial impact → valuation impact, with [source_ref] citations inline>",
       "confidence": <float 0.0-1.0>,
-      "evidence_span_ids": ["1", "3", "7"]
+      "evidence_span_ids": ["market:AAPL-financials:gross-margin", "news:reuters:2026-04-20"]
     }
   ]
 }
-evidence_span_ids must be strings referencing the [N] labels in the evidence list."""
+
+ALL FOUR FIELDS ARE REQUIRED on every debate_point. Do NOT omit any.
+- "confidence" must be a numeric float between 0.0 and 1.0 (your subjective confidence in this
+  claim given the evidence). Never skip this field.
+- "evidence_span_ids" must be a SEPARATE ARRAY of source_ref strings copied verbatim from the
+  evidence's [source_ref] labels (e.g. ["market:AAPL-financials:gross-margin"]). Inline
+  citations in the rationale ALSO use [source_ref] form (e.g. "...50bps margin expansion
+  [market:AAPL-financials:gross-margin]"). DO NOT use numeric citations like [1] or [N] —
+  they cannot be verified against the citations list. Every source_ref you cite must appear
+  in the provided evidence; never invent one."""
 
 
 def bull_agent(state: AgentState) -> dict:

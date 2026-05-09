@@ -46,6 +46,16 @@ AVOID:
 - Level comparisons without trend — a high P/E alone is not bearish without growth context.
 - Using a 90-day price decline as a thesis — name the fundamental driver, not the price action.
 - Flipping the same metric the bull uses without resolving the tension.
+- Treating a NEGATIVE ratio as bullish or bearish in the same direction as a positive one.
+  EV/EBITDA below zero, P/E below zero, etc. mean the underlying is negative — these CANNOT be
+  compared on the same number line as positive multiples. If the only available multiple is
+  negative, state the underlying loss directly ("EBITDA is -$X.YB") and discuss the path to
+  positive territory; do not call the ratio "cheaper" or "expensive".
+
+ARITHMETIC SANITY (CRITICAL — before submitting any cross-ticker comparison):
+If you make a directional claim about two numbers ("X has HIGHER margin than peer Y at..."), the
+math must match the direction word. State direction words only after verifying they match the
+arithmetic. If your claim's direction contradicts the numbers, drop the claim.
 
 Return JSON with exactly ONE top-level key: "debate_points" (an array). Do NOT add outer wrappers
 like "bull_case" or "bear_case" — this is the BEAR agent only, so only return bear points. Report at
@@ -54,12 +64,21 @@ most 5 strongest points. Shape:
   "debate_points": [
     {
       "claim": "<specific, metric-anchored downside claim, one sentence>",
-      "rationale": "<driver → mechanism → financial impact → valuation impact, with [N] citations>",
+      "rationale": "<driver → mechanism → financial impact → valuation impact, with [source_ref] citations inline>",
       "confidence": <float 0.0-1.0>,
-      "evidence_span_ids": ["1", "3", "7"]
+      "evidence_span_ids": ["market:RIVN-financials:operating-margin", "news:tavily:rivn-q4-2025"]
     }
   ]
 }
+
+ALL FOUR FIELDS ARE REQUIRED on every debate_point. Do NOT omit any.
+- "confidence" must be a numeric float between 0.0 and 1.0 (your subjective confidence in this
+  claim given the evidence). Never skip this field.
+- "evidence_span_ids" must be a SEPARATE ARRAY of source_ref strings copied verbatim from the
+  evidence's [source_ref] labels. Inline citations in the rationale ALSO use [source_ref] form
+  (e.g. "...50bps margin compression [market:RIVN-financials:operating-margin]"). DO NOT use
+  numeric citations like [1] or [N] — they cannot be verified against the citations list. Every
+  source_ref you cite must appear in the provided evidence; never invent one.
 evidence_span_ids must be strings referencing the [N] labels in the evidence list."""
 
 

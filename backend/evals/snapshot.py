@@ -78,8 +78,14 @@ def _patch(module_path: str, fn_name: str, fixture_dir: Path, return_type: Any |
         setattr(module, fn_name, original)
 
 
-# Patch targets — verified against backend/tools/ in the worktree.
+# Patch targets — must include the IMPORT SITE, not just the source module.
+# Agents do `from backend.tools.X import fn`, which binds the function reference
+# at import time into the agent's namespace. Patching only the source module
+# leaves the agent's bound reference pointing at the original function.
+# Each (source, [import_site, ...]) pair means: patch the source AND every site
+# that imported the function by name.
 _PATCH_TARGETS: list[tuple[str, str]] = [
+    # source module patches (kept for any downstream tool-to-tool calls)
     ("backend.tools.news",         "get_news_evidence"),
     ("backend.tools.market_data",  "get_market_data_evidence"),
     ("backend.tools.filings",      "fetch_recent_filings"),
@@ -89,6 +95,16 @@ _PATCH_TARGETS: list[tuple[str, str]] = [
     ("backend.tools.quant",        "compute_pe_ratio"),
     ("backend.tools.quant",        "compute_ev_ebitda"),
     ("backend.tools.quant",        "generate_price_chart"),
+    # import-site patches — where the agents bound the function references
+    ("backend.agents.news",                "get_news_evidence"),
+    ("backend.agents.market_data",         "get_market_data_evidence"),
+    ("backend.agents.filings",             "fetch_recent_filings"),
+    ("backend.agents.quant_data",          "compute_returns"),
+    ("backend.agents.quant_data",          "compute_volatility"),
+    ("backend.agents.quant_data",          "fetch_peer_comps"),
+    ("backend.agents.quant_interpretation", "compute_pe_ratio"),
+    ("backend.agents.quant_interpretation", "compute_ev_ebitda"),
+    ("backend.agents.quant_interpretation", "generate_price_chart"),
 ]
 
 

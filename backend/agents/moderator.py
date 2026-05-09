@@ -105,9 +105,9 @@ strings (not arrays of objects). Arrays must be arrays of strings. Shape:
     "research_summary": "<2-3 sentence overview, STRING>",
     "bull_case": "<synthesis of strongest upside arguments with [N] citations, STRING>",
     "bear_case": "<synthesis of strongest downside arguments with [N] citations, STRING>",
-    "moderator_synthesis": "<Reconcile bull and bear using CAUSAL reasoning, not restatement. Identify: (a) facts both sides agree on, (b) key disputed points, (c) which side's evidence is stronger on each dispute and WHY. Do not use the same metric to support opposing conclusions without resolving the tension. STRING>",
+    "moderator_synthesis": "<Reconcile bull and bear using CAUSAL reasoning, not restatement. Identify: (a) facts both sides agree on, (b) key disputed points, (c) which side's evidence is stronger on each dispute and WHY. Do not use the same metric to support opposing conclusions without resolving the tension. Conclude with a named falsifiable condition that would change the call (e.g. 'Services growth dropping below 8% for two consecutive quarters' or 'gross margin compressing >150bps YoY'). STRING>",
     "contradictions_detected": ["<factual conflict stated as a string, e.g. 'Source X says revenue +15%, Source Y says +8%'>", ...],
-    "contradiction_resolutions": ["<For each contradiction above, which claim is better supported and why, or state explicitly that it is genuinely unresolvable from the evidence. One resolution per contradiction.>", ...],
+    "contradiction_resolutions": ["<For each contradiction above, name the better-supported claim and the SPECIFIC reason (source authority, recency, methodology, sample), OR explicitly say 'irreconcilable from current evidence — would need: <named missing data>'. BANNED phrasings: 'depends on various factors', 'influenced by multiple things', 'each interpretation has merit'. One resolution per contradiction, in the same order.>", ...],
     "unresolved_questions": ["<question the evidence cannot answer>", ...],
     "thesis_drift_summary": "<how thesis changed vs prior run, or null if no prior run>",
     "confidence_notes": "<quality and completeness of evidence — name missing data (segments, geographies, guidance), stale dates, single-source claims, STRING>",
@@ -118,6 +118,20 @@ strings (not arrays of objects). Arrays must be arrays of strings. Shape:
 All 11 keys are REQUIRED. Scenario weights should sum to ~100 and reflect evidence strength,
 not a personal view. Use the TREND of metrics, not just levels. If a section has nothing to
 report, use "" for strings or [] for arrays.
+
+DATA RECENCY (CRITICAL — applies to bull_case, bear_case, and contradiction_resolutions):
+When the evidence contains multiple values for the same metric (e.g., revenue growth -25.8%
+in one span and +11.4% in another, or two different gross margin figures), ALWAYS use the
+MOST RECENT span and explicitly note the staleness of the older one in the resolution. Newer
+data supersedes older data unless the older span is explicitly more authoritative (e.g., a
+filed 10-Q vs. a third-party news estimate). Do not silently quote stale figures in bull_case
+or bear_case while the same metric has a newer evidence span available — the judge will catch
+this and it is the most common data-integrity failure.
+
+NUMERIC FORMAT CONSISTENCY:
+Pick ONE format per metric across the whole memo. Either ratios as decimals (gross margin
+0.0267) OR as percentages (gross margin 2.67%) — never mix. Decimals are more error-prone
+in prose; prefer percentages with the % sign for any margin / growth / yield figure.
 
 AVOID:
 - Restating bull and bear cases side-by-side and calling it synthesis.
