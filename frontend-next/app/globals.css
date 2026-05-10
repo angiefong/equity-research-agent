@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-feature-settings: "ss01", "cv01", "cv11";
+}
+
+/* Brutalist primitives as utilities */
+@layer components {
+  .b-frame {
+    @apply border-2 border-ink bg-paper;
+  }
+  .b-rule {
+    @apply border-b-2 border-ink;
+  }
+  .b-hairline {
+    @apply border-b border-[#cccccc] border-dashed;
+  }
+  .label-tiny {
+    @apply text-[8px] uppercase tracking-[1.5px] text-muted font-bold;
+  }
+  .label-section {
+    @apply text-[10px] uppercase tracking-[2px] text-ink font-extrabold;
+  }
+}
