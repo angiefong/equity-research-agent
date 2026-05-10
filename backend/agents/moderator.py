@@ -139,6 +139,16 @@ AVOID:
 - Labelling growth "slowing" or margins "pressured" without a trend comparison."""
 
 
+def compute_weights(bull_points: list[dict], bear_points: list[dict]) -> tuple[float, float]:
+    """Return (bull_weight, bear_weight) — average confidence per side, 0.0 if empty."""
+    def _avg(points: list[dict]) -> float:
+        if not points:
+            return 0.0
+        confs = [p.get("confidence", 0.0) for p in points]
+        return sum(confs) / len(confs)
+    return _avg(bull_points), _avg(bear_points)
+
+
 def _format_contradictions(items: list[Contradiction]) -> str:
     if not items:
         return "None detected."
@@ -181,7 +191,19 @@ def moderator_agent(state: AgentState) -> dict:
         )},
     ])
 
-    memo = ResearchMemo(**{**result.memo.model_dump(), "ticker": state["ticker"]})
+    bull_weight, bear_weight = compute_weights(
+        [p.model_dump() for p in state.get("bull_points", [])],
+        [p.model_dump() for p in state.get("bear_points", [])],
+    )
+    memo = ResearchMemo(**{
+        **result.memo.model_dump(),
+        "ticker": state["ticker"],
+        "bull_weight": bull_weight,
+        "bear_weight": bear_weight,
+        "company_name": state.get("company_name"),
+        "exchange": state.get("exchange"),
+        "sector": state.get("sector"),
+    })
 
     snapshot = ThesisSnapshot(
         ticker=state["ticker"],
