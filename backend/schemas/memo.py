@@ -19,3 +19,8 @@ class ResearchMemo(BaseModel):
     confidence_notes: str
     scenarios: list[str] = Field(default_factory=list)
     citations: list[str]
+    bull_weight: Optional[float] = None
+    bear_weight: Optional[float] = None
+    company_name: Optional[str] = None
+    exchange: Optional[str] = None
+    sector: Optional[str] = None

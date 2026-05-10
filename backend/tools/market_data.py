@@ -41,20 +41,14 @@ def fetch_financials(ticker: str) -> list[EvidenceSpan]:
     return spans
 
 
-def fetch_alpha_vantage_overview(ticker: str) -> list[EvidenceSpan]:
-    api_key = os.environ.get("ALPHA_VANTAGE_KEY", "")
-    url = (
-        f"https://www.alphavantage.co/query"
-        f"?function=OVERVIEW&symbol={ticker}&apikey={api_key}"
-    )
-    resp = requests.get(url, timeout=10)
-    resp.raise_for_status()
-    data = resp.json()
-    if "Symbol" not in data:
+def fetch_alpha_vantage_overview(ticker: str, overview: dict | None = None) -> list[EvidenceSpan]:
+    if overview is None:
+        overview = get_company_overview(ticker)
+    if "Symbol" not in overview:
         return []
     spans = []
     for field in ["Description", "Sector", "Industry", "52WeekHigh", "52WeekLow"]:
-        val = data.get(field)
+        val = overview.get(field)
         if val and val != "None":
             spans.append(EvidenceSpan(
                 text=f"{ticker} {field}: {val}",
@@ -64,8 +58,26 @@ def fetch_alpha_vantage_overview(ticker: str) -> list[EvidenceSpan]:
     return spans
 
 
-def get_market_data_evidence(ticker: str) -> list[EvidenceSpan]:
+def get_market_data_evidence(ticker: str, overview: dict | None = None) -> list[EvidenceSpan]:
     spans = [fetch_price_history(ticker)]
     spans.extend(fetch_financials(ticker))
-    spans.extend(fetch_alpha_vantage_overview(ticker))
+    spans.extend(fetch_alpha_vantage_overview(ticker, overview=overview))
     return spans
+
+
+def get_company_overview(ticker: str) -> dict:
+    """Return Alpha Vantage OVERVIEW response for the ticker, or empty dict on error."""
+    api_key = os.environ.get("ALPHA_VANTAGE_KEY")
+    if not api_key:
+        return {}
+    try:
+        resp = requests.get(
+            "https://www.alphavantage.co/query",
+            params={"function": "OVERVIEW", "symbol": ticker, "apikey": api_key},
+            timeout=10,
+        )
+        if resp.ok:
+            return resp.json() or {}
+    except requests.RequestException:
+        pass
+    return {}
