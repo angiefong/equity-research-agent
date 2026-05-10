@@ -32,6 +32,9 @@ class AgentState(TypedDict):
     reroute_count_total: int
     reroute_targets: list[str]
     verification_status: Literal["pending", "pass", "fail", "needs_reroute"]
+    company_name: NotRequired[Optional[str]]
+    exchange: NotRequired[Optional[str]]
+    sector: NotRequired[Optional[str]]
 
 
 class OutputState(TypedDict):
