@@ -34,6 +34,7 @@ load_dotenv()
 from backend.graph.builder import build_graph
 from backend.persistence.checkpointer import get_checkpointer
 from backend.persistence.snapshot_store import load_latest_snapshot
+from backend.persistence.runs_index import append_run, list_runs
 
 app = FastAPI(title="Financial Research Agent API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -56,6 +57,7 @@ async def run_stream(ticker: str, query: str):
         yield {"event": "run_started", "data": _dumps({"run_id": run_id, "ticker": ticker})}
 
         import time
+        run_start_time = time.time()
 
         active_agents: set[str] = set()
         merged: asyncio.Queue = asyncio.Queue()
@@ -143,6 +145,25 @@ async def run_stream(ticker: str, query: str):
                         except Exception:
                             logger.exception("producer task failed")
 
+            try:
+                stored = _run_results.get(run_id, {})
+                final_memo = stored.get("final_memo")
+                if final_memo is not None:
+                    memo_dict = final_memo.model_dump() if hasattr(final_memo, "model_dump") else dict(final_memo)
+                    lede = (memo_dict.get("research_summary") or "").split(".")[0][:200]
+                    append_run({
+                        "run_id": run_id,
+                        "ticker": ticker,
+                        "verdict": _classify_verdict(memo_dict),
+                        "bull_weight": memo_dict.get("bull_weight"),
+                        "bear_weight": memo_dict.get("bear_weight"),
+                        "lede": lede,
+                        "duration_s": round(time.time() - run_start_time, 2),
+                        "agent_count": len(AGENT_NODES),
+                    })
+            except Exception:
+                logger.exception("failed to append run to runs_index")
+
             yield {
                 "event": "run_completed",
                 "data": _dumps({"run_id": run_id, "ticker": ticker}),
@@ -170,6 +191,21 @@ def _summarize_output(agent: str, output: dict) -> str:
     if agent == "moderator":
         return "memo assembled"
     return "done"
+
+
+def _classify_verdict(memo: dict) -> str:
+    bw = memo.get("bull_weight") or 0.0
+    br = memo.get("bear_weight") or 0.0
+    if bw - br > 0.15: return "Strong Bull"
+    if bw - br > 0.0: return "Cautious Bull"
+    if br - bw > 0.15: return "Strong Bear"
+    if br - bw > 0.0: return "Cautious Bear"
+    return "Neutral"
+
+
+@app.get("/runs")
+async def get_runs(limit: int = 10):
+    return list_runs(limit=limit)
 
 
 @app.get("/run/{run_id}/memo")
