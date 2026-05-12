@@ -14,6 +14,7 @@ from backend.agents.verifier import verifier_agent
 from backend.agents.reroute import reroute_agent
 from backend.agents.thesis_replay import thesis_replay_agent
 from backend.agents.moderator import moderator_agent
+from backend.agents.snapshot_writer import snapshot_writer_agent
 from backend.agents.verification_policy import should_reroute
 
 
@@ -43,6 +44,7 @@ def build_graph(checkpointer=None) -> StateGraph:
     builder.add_node("reroute", reroute_agent)
     builder.add_node("thesis_replay", thesis_replay_agent)
     builder.add_node("moderator", moderator_agent)
+    builder.add_node("snapshot_writer", snapshot_writer_agent)
 
     builder.add_edge(START, "supervisor")
 
@@ -75,6 +77,7 @@ def build_graph(checkpointer=None) -> StateGraph:
     builder.add_edge("reroute", "verifier")
 
     builder.add_edge("thesis_replay", "moderator")
-    builder.add_edge("moderator", END)
+    builder.add_edge("moderator", "snapshot_writer")
+    builder.add_edge("snapshot_writer", END)
 
     return builder.compile(checkpointer=checkpointer)

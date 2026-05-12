@@ -43,7 +43,7 @@ AGENT_NODES = {
     "supervisor", "market_data", "filings", "news", "quant_data",
     "quant_interpretation", "evidence_contradiction",
     "bull", "bear", "debate_contradiction", "verifier",
-    "reroute", "thesis_replay", "moderator",
+    "reroute", "thesis_replay", "moderator", "snapshot_writer",
 }
 
 _run_results: dict[str, dict] = {}
@@ -190,6 +190,8 @@ def _summarize_output(agent: str, output: dict) -> str:
         return f"status: {output.get('verification_status', 'unknown')}"
     if agent == "moderator":
         return "memo assembled"
+    if agent == "snapshot_writer":
+        return "thesis snapshot saved"
     return "done"
 
 

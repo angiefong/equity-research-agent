@@ -255,13 +255,11 @@ def test_moderator_produces_memo_first_run():
     from pydantic import BaseModel
     class MockOut(BaseModel):
         memo: ResearchMemo
-    with patch("backend.agents.moderator.get_structured_llm") as mock_llm, \
-         patch("backend.agents.moderator.save_snapshot"):
+    with patch("backend.agents.moderator.get_structured_llm") as mock_llm:
         mock_llm.return_value.invoke.return_value = MockOut(memo=mock_memo)
         result = moderator_agent(_base_state())
     assert "final_memo" in result
     assert result["final_memo"].thesis_drift_summary is None
-    assert "thesis_snapshot_current" in result
 
 def test_moderator_includes_drift_on_second_run():
     from backend.agents.moderator import moderator_agent
@@ -280,8 +278,7 @@ def test_moderator_includes_drift_on_second_run():
     from pydantic import BaseModel
     class MockOut(BaseModel):
         memo: ResearchMemo
-    with patch("backend.agents.moderator.get_structured_llm") as mock_llm, \
-         patch("backend.agents.moderator.save_snapshot"):
+    with patch("backend.agents.moderator.get_structured_llm") as mock_llm:
         mock_llm.return_value.invoke.return_value = MockOut(memo=mock_memo)
         result = moderator_agent(state)
     assert result["final_memo"].thesis_drift_summary is not None

@@ -3,11 +3,9 @@ from pydantic import BaseModel, field_validator, model_validator
 from backend.agents._prompts import format_evidence
 from backend.agents.llm import get_structured_llm
 from backend.graph.state import AgentState, resolve_query
-from backend.persistence.snapshot_store import save_snapshot
 from backend.schemas.contradiction import Contradiction
 from backend.schemas.debate import DebatePoint
 from backend.schemas.memo import ResearchMemo
-from backend.schemas.thesis import ThesisSnapshot
 
 
 def _coerce_to_str(v: Any) -> str:
@@ -205,18 +203,4 @@ def moderator_agent(state: AgentState) -> dict:
         "sector": state.get("sector"),
     })
 
-    snapshot = ThesisSnapshot(
-        ticker=state["ticker"],
-        bull_points=state["bull_points"],
-        bear_points=state["bear_points"],
-        confidence_by_topic={
-            p.claim[:40]: p.confidence
-            for p in state["bull_points"] + state["bear_points"]
-        },
-    )
-    save_snapshot(snapshot)
-
-    return {
-        "final_memo": memo,
-        "thesis_snapshot_current": snapshot,
-    }
+    return {"final_memo": memo}

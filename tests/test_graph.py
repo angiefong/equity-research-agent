@@ -41,7 +41,7 @@ def test_graph_runs_to_completion():
         "backend.agents.verifier.get_structured_llm": MagicMock(return_value=MagicMock(invoke=MagicMock(return_value=MagicMock(issues=[])))),
         "backend.agents.thesis_replay.load_latest_snapshot": MagicMock(return_value=None),
         "backend.agents.moderator.get_structured_llm": MagicMock(return_value=MagicMock(invoke=MagicMock(return_value=MagicMock(memo=mock_memo)))),
-        "backend.agents.moderator.save_snapshot": MagicMock(),
+        "backend.agents.snapshot_writer.save_snapshot": MagicMock(),
     }
 
     with ExitStack() as stack:
