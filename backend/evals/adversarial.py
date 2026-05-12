@@ -273,3 +273,91 @@ def _memo_snippet(memo_dict: dict, limit: int = 200) -> str:
     bull = (memo_dict.get("bull_case") or "")[:limit]
     moderator = (memo_dict.get("moderator_synthesis") or "")[:limit]
     return f"BULL: {bull}\n\nMODERATOR: {moderator}"
+
+
+class AdversarialAggregate(BaseModel):
+    total_cases: int
+    absorbed: int
+    absorption_rate: float
+    by_category: dict[str, dict] = Field(default_factory=dict)
+    catch_breakdown: dict[str, int] = Field(default_factory=dict)
+    per_case: list[AdversarialResult] = Field(default_factory=list)
+
+
+def aggregate_results(results: list[AdversarialResult]) -> AdversarialAggregate:
+    total = len(results)
+    absorbed = sum(1 for r in results if r.judgment.absorbed)
+
+    by_cat: dict[str, dict] = {}
+    for r in results:
+        d = by_cat.setdefault(r.category.value, {"total": 0, "absorbed": 0})
+        d["total"] += 1
+        if r.judgment.absorbed:
+            d["absorbed"] += 1
+    for d in by_cat.values():
+        d["rate"] = d["absorbed"] / d["total"] if d["total"] else 0.0
+
+    catch_breakdown = {
+        "verifier_flagged":      sum(1 for r in results if r.breakdown.verifier_flagged),
+        "agent_refused":         sum(1 for r in results if r.breakdown.agent_refused),
+        "citation_layer_caught": sum(1 for r in results if r.breakdown.citation_layer_caught),
+    }
+
+    return AdversarialAggregate(
+        total_cases=total,
+        absorbed=absorbed,
+        absorption_rate=absorbed / total if total else 0.0,
+        by_category=by_cat,
+        catch_breakdown=catch_breakdown,
+        per_case=results,
+    )
+
+
+def build_adversarial_summary(agg: AdversarialAggregate, meta: dict) -> str:
+    lines = [
+        "# Adversarial Eval Report",
+        "",
+        f"**Branch:** {meta.get('branch', '?')} | "
+        f"**Agent model:** {meta.get('agent_model', '?')} | "
+        f"**Judge:** {meta.get('judge_model', '?')}",
+        "",
+        "## Headline",
+        "",
+        "| Metric | Value |",
+        "|---|---|",
+        f"| Absorption rate | {agg.absorption_rate:.0%} ({agg.absorbed}/{agg.total_cases}) |",
+        f"| Cases caught | {agg.total_cases - agg.absorbed}/{agg.total_cases} |",
+        "",
+        "## By category",
+        "",
+        "| Category | Cases | Absorbed | Rate |",
+        "|---|---|---|---|",
+    ]
+    for cat in sorted(agg.by_category):
+        d = agg.by_category[cat]
+        lines.append(f"| {cat} | {d['total']} | {d['absorbed']} | {d['rate']:.0%} |")
+    lines += [
+        "",
+        "## Defense layers — cases where each defense fired",
+        "",
+        "| Mechanism | Cases |",
+        "|---|---|",
+        f"| verifier_flagged | {agg.catch_breakdown.get('verifier_flagged', 0)} |",
+        f"| agent_refused | {agg.catch_breakdown.get('agent_refused', 0)} |",
+        f"| citation_layer_caught | {agg.catch_breakdown.get('citation_layer_caught', 0)} |",
+        "",
+        "## Per case",
+        "",
+        "| Case | Category | Absorbed | Verifier | Bull/bear | Citations |",
+        "|---|---|---|---|---|---|",
+    ]
+    for r in agg.per_case:
+        b = r.breakdown
+        lines.append(
+            f"| {r.case_id} | {r.category.value} | "
+            f"{'YES' if b.absorbed else 'no'} | "
+            f"{'flagged' if b.verifier_flagged else '—'} | "
+            f"{'refused' if b.agent_refused else 'cited'} | "
+            f"{'caught' if b.citation_layer_caught else 'present'} |"
+        )
+    return "\n".join(lines) + "\n"
