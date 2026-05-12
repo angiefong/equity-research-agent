@@ -14,12 +14,13 @@ from backend.agents.verifier import verifier_agent
 from backend.agents.reroute import reroute_agent
 from backend.agents.thesis_replay import thesis_replay_agent
 from backend.agents.moderator import moderator_agent
+from backend.agents.verification_policy import should_reroute
 
 
 def _route_after_verifier(state: AgentState) -> str:
-    if (
-        state.get("verification_status") == "needs_reroute"
-        and state.get("reroute_count_total", 0) < 2
+    if should_reroute(
+        state.get("verification_status", ""),
+        state.get("reroute_count_total", 0),
     ):
         return "reroute"
     return "thesis_replay"
