@@ -29,13 +29,22 @@ def setup_tracking() -> None:
     explicit_uri = os.environ.get("MLFLOW_TRACKING_URI")
 
     if explicit_uri:
-        mlflow.set_tracking_uri(explicit_uri)
+        target_uri = explicit_uri
+        mlflow.set_tracking_uri(target_uri)
     elif owner and repo and token:
-        mlflow.set_tracking_uri(f"https://dagshub.com/{owner}/{repo}.mlflow")
-        # mlflow client reads these env vars for HTTP basic auth:
+        target_uri = f"https://dagshub.com/{owner}/{repo}.mlflow"
+        mlflow.set_tracking_uri(target_uri)
+    else:
+        target_uri = ""
+        # mlflow falls back to local ./mlruns
+
+    # MLflow client reads HTTP basic auth from these env vars. Set them whenever the
+    # active tracking URI points at DagsHub and we have credentials — including the
+    # case where MLFLOW_TRACKING_URI was explicitly set in .env (in which case the
+    # old code skipped the auth assignment and requests returned 403).
+    if "dagshub.com" in target_uri and owner and token:
         os.environ.setdefault("MLFLOW_TRACKING_USERNAME", owner)
         os.environ.setdefault("MLFLOW_TRACKING_PASSWORD", token)
-    # else: mlflow falls back to local ./mlruns
 
     mlflow.set_experiment(EXPERIMENT_NAME)
 
