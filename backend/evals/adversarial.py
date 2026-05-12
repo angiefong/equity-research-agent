@@ -148,3 +148,128 @@ def load_fixtures(directory: Path) -> list[AdversarialFixture]:
         seen.add(fixture.case_id)
         fixtures.append(fixture)
     return fixtures
+
+
+FIXTURES_DIR = Path(__file__).parent / "adversarial_fixtures"
+
+
+def run_adversarial_case(
+    fixture: AdversarialFixture,
+    epoch: str = "adversarial",
+    judge_fn=None,
+    graph_factory=None,
+) -> AdversarialResult:
+    """Run the LangGraph pipeline with poisoned news for one fixture; score the result.
+
+    `judge_fn` defaults to backend.evals.judge.score_adversarial; override in tests.
+    `graph_factory` defaults to backend.graph.builder.build_graph; override in tests.
+
+    The non-news data-fetch tools are routed through `epoch_snapshot` for caching,
+    so re-running an epoch hits the same market_data/filings/quant fixtures. News
+    is replaced with the fixture's legitimate + poisoned spans.
+    """
+    import uuid as _uuid
+    from unittest.mock import patch as _patch
+
+    from langgraph.checkpoint.memory import MemorySaver
+
+    from backend.evals.snapshot import epoch_snapshot
+    from backend.schemas.evidence import EvidenceSpan
+
+    if graph_factory is None:
+        from backend.graph.builder import build_graph
+        graph_factory = build_graph
+    if judge_fn is None:
+        from backend.evals.judge import score_adversarial
+        judge_fn = score_adversarial
+
+    spans = [
+        EvidenceSpan(
+            text=s.text,
+            source_ref=s.source_ref,
+            agent_origin=s.agent_origin,
+            confidence=s.confidence,
+        )
+        for s in (fixture.legitimate_news_spans + [fixture.poisoned_news_span])
+    ]
+
+    state = None
+    error: Optional[str] = None
+    try:
+        with epoch_snapshot(epoch=epoch, ticker=fixture.ticker), \
+             _patch("backend.agents.news.get_news_evidence", return_value=spans):
+            graph = graph_factory(checkpointer=MemorySaver())
+            cfg = {"configurable": {"thread_id": str(_uuid.uuid4())}}
+            graph.invoke({"ticker": fixture.ticker}, config=cfg)
+            state = graph.get_state(cfg).values
+    except Exception as e:
+        error = f"{type(e).__name__}: {e}"
+
+    if state is None:
+        return AdversarialResult(
+            case_id=fixture.case_id, ticker=fixture.ticker, category=fixture.category,
+            judgment=AdversarialJudgment(absorbed=False, rationale="pipeline raised"),
+            breakdown=CatchBreakdown(),
+            error=error,
+        )
+
+    memo = state.get("final_memo")
+    if memo is None:
+        return AdversarialResult(
+            case_id=fixture.case_id, ticker=fixture.ticker, category=fixture.category,
+            judgment=AdversarialJudgment(absorbed=False, rationale="pipeline produced no final_memo"),
+            breakdown=compute_catch_breakdown(state, fixture.poisoned_news_span.source_ref, judge_absorbed=False),
+            error="no_final_memo",
+        )
+
+    memo_dict = memo.model_dump() if hasattr(memo, "model_dump") else memo
+    legit_summary = _summarize_legitimate_spans(fixture.legitimate_news_spans)
+
+    try:
+        judgment = judge_fn(
+            memo=memo_dict,
+            legitimate_evidence_summary=legit_summary,
+            injection_description=fixture.description,
+        )
+    except Exception as e:
+        return AdversarialResult(
+            case_id=fixture.case_id, ticker=fixture.ticker, category=fixture.category,
+            judgment=AdversarialJudgment(absorbed=False, rationale=f"judge raised: {type(e).__name__}"),
+            breakdown=compute_catch_breakdown(state, fixture.poisoned_news_span.source_ref, judge_absorbed=False),
+            error=f"judge_failed: {e}",
+        )
+
+    breakdown = compute_catch_breakdown(
+        state=state,
+        poisoned_source_ref=fixture.poisoned_news_span.source_ref,
+        judge_absorbed=judgment.absorbed,
+    )
+
+    snippet = _memo_snippet(memo_dict)
+    return AdversarialResult(
+        case_id=fixture.case_id, ticker=fixture.ticker, category=fixture.category,
+        judgment=judgment, breakdown=breakdown, final_memo_snippet=snippet,
+    )
+
+
+def _summarize_legitimate_spans(spans: list[AdversarialSpan], max_chars: int = 4000) -> str:
+    """Build a compact text summary of the legitimate evidence for the judge prompt."""
+    header = f"Legitimate news evidence ({len(spans)} spans):\n"
+    lines: list[str] = []
+    used = len(header)
+    for s in spans:
+        line = f"- [{s.source_ref}] {s.text}\n"
+        if used + len(line) > max_chars:
+            lines.append(f"... ({len(spans) - len(lines)} more truncated)\n")
+            break
+        lines.append(line)
+        used += len(line)
+    return header + "".join(lines)
+
+
+def _memo_snippet(memo_dict: dict, limit: int = 200) -> str:
+    if not isinstance(memo_dict, dict):
+        return ""
+    bull = (memo_dict.get("bull_case") or "")[:limit]
+    moderator = (memo_dict.get("moderator_synthesis") or "")[:limit]
+    return f"BULL: {bull}\n\nMODERATOR: {moderator}"
