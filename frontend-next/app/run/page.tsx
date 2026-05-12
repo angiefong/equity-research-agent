@@ -14,7 +14,7 @@ const AGENT_ORDER = [
   "supervisor", "market_data", "filings", "news", "quant_data",
   "quant_interpretation", "evidence_contradiction",
   "bull", "bear", "debate_contradiction",
-  "verifier", "reroute", "thesis_replay", "moderator",
+  "verifier", "reroute", "thesis_replay", "moderator", "snapshot_writer",
 ] as const;
 
 function RunPageInner() {
@@ -79,7 +79,7 @@ function RunPageInner() {
         query={query}
         stats={[
           { label: "Elapsed", value: `${min}:${sec}` },
-          { label: "Done", value: `${done}/14` },
+          { label: "Done", value: `${done}/${AGENT_ORDER.length}` },
           { label: "Failed", value: `${state.failed}` },
           { label: "Reroutes", value: `${state.reroutes}` },
         ]}
@@ -87,7 +87,7 @@ function RunPageInner() {
       <div className="px-5 py-4 border-b-2 border-ink bg-inset">
         <div className="label-section mb-2.5 pb-1.5 border-b-[1.5px] border-ink flex justify-between">
           <span>Pipeline</span>
-          <span className="font-mono normal-case tracking-normal text-muted">14 agents · streaming via SSE</span>
+          <span className="font-mono normal-case tracking-normal text-muted">{AGENT_ORDER.length} agents · streaming via SSE</span>
         </div>
         <PipelineDAG agents={state.agents} />
       </div>
