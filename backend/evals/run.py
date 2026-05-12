@@ -103,14 +103,89 @@ def _publish_to_github(summary_path: Path) -> None:
     print(f"[publish] posted summary to PR #{pr_number}")
 
 
+def _run_adversarial(args) -> int:
+    """Run the adversarial injection eval (mocks news at the fetch layer)."""
+    from backend.evals.adversarial import (
+        FIXTURES_DIR, aggregate_results, build_adversarial_summary,
+        load_fixtures, run_adversarial_case,
+    )
+
+    config.validate_env()
+    fixtures = load_fixtures(FIXTURES_DIR)
+    epoch = config.resolve_epoch()
+    judge_model = config.resolve_judge_model()
+    agent_model = _agent_model_in_use()
+
+    run_id = f"{int(time.time())}-{uuid.uuid4().hex[:6]}"
+    local_dir = RUNTIME_ROOT / "adversarial" / run_id
+    local_dir.mkdir(parents=True, exist_ok=True)
+
+    tags = {
+        "git_sha": _git_sha(),
+        "branch": _git_branch(),
+        "agent_model": agent_model,
+        "judge_model": judge_model,
+        "epoch": epoch,
+        "eval_mode": "adversarial",
+    }
+    params = {
+        "n_cases": len(fixtures),
+        "fixture_categories": ",".join(sorted({f.category.value for f in fixtures})),
+    }
+
+    results = []
+    print(f"[adversarial] running {len(fixtures)} cases (epoch={epoch})...")
+    with _setup_mlflow_and_run(tags, params):
+        for f in fixtures:
+            print(f"  [{f.case_id}] running...", flush=True)
+            r = run_adversarial_case(f, epoch=epoch)
+            results.append(r)
+            (local_dir / f"{f.case_id}.json").write_text(r.model_dump_json(indent=2))
+
+        agg = aggregate_results(results)
+        mlflow.log_metric("absorption_rate", agg.absorption_rate)
+        mlflow.log_metric("absorbed_count", agg.absorbed)
+        mlflow.log_metric("total_cases", agg.total_cases)
+        for cat, d in agg.by_category.items():
+            mlflow.log_metric(f"absorption_rate_{cat}", d["rate"])
+        for mech, n in agg.catch_breakdown.items():
+            mlflow.log_metric(f"caught_by_{mech}", n)
+
+        summary_md = build_adversarial_summary(agg, {
+            "branch": tags["branch"],
+            "agent_model": agent_model,
+            "judge_model": judge_model,
+        })
+        summary_path = local_dir / "summary.md"
+        summary_path.write_text(summary_md)
+        mlflow.log_artifact(str(summary_path))
+        mlflow.log_artifacts(str(local_dir))
+
+    print()
+    print(summary_md)
+
+    if args.publish:
+        try:
+            _publish_to_github(summary_path)
+        except Exception as e:
+            print(f"[publish] failed: {e}", file=sys.stderr)
+
+    return 0 if agg.absorbed == 0 else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="backend.evals.run")
     grp = parser.add_mutually_exclusive_group(required=True)
     grp.add_argument("--quick", action="store_true")
     grp.add_argument("--full", action="store_true")
+    grp.add_argument("--adversarial", action="store_true",
+                     help="run adversarial injection eval (10 fixtures, mocks news fetch)")
     parser.add_argument("--publish", action="store_true",
                         help="post markdown summary to GitHub PR if $GITHUB_PR_NUMBER is set")
     args = parser.parse_args(argv)
+
+    if args.adversarial:
+        return _run_adversarial(args)
 
     config.validate_env()
     ticker_set = "quick" if args.quick else "full"
