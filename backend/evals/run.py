@@ -51,18 +51,12 @@ def _dagshub_url() -> str:
 
 
 def _agent_model_in_use() -> str:
-    """Read the actual model from backend.agents.llm at runtime."""
+    """Read the resolved agent model name from backend.agents.llm."""
     try:
-        import backend.agents.llm as llm_mod
-        import inspect
-        src = inspect.getsource(llm_mod)
-        for line in src.splitlines():
-            line = line.strip()
-            if line.startswith("model="):
-                return line.split("=", 1)[1].strip().strip('",')
+        from backend.agents.llm import _GROQ_MODELS
+        return _GROQ_MODELS.get("large", "unknown")
     except Exception:
-        pass
-    return "unknown"
+        return "unknown"
 
 
 def _run_pipeline_for_ticker(ticker: str, epoch: str) -> dict:

@@ -51,6 +51,38 @@ def test_aggregate_averages_skip_failed_tickers():
     assert avg["n_tickers_failed"] == 1
 
 
+def test_setup_tracking_sets_auth_when_uri_is_explicit_dagshub(monkeypatch):
+    """Regression: prior code only set HTTP basic auth on the fallback path.
+    When MLFLOW_TRACKING_URI was explicitly set in .env (to the same DagsHub URL),
+    requests went out unauthenticated and got 403."""
+    monkeypatch.delenv("MLFLOW_TRACKING_USERNAME", raising=False)
+    monkeypatch.delenv("MLFLOW_TRACKING_PASSWORD", raising=False)
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "https://dagshub.com/me/repo.mlflow")
+    monkeypatch.setenv("DAGSHUB_REPO_OWNER", "me")
+    monkeypatch.setenv("DAGSHUB_REPO_NAME", "repo")
+    monkeypatch.setenv("DAGSHUB_TOKEN", "tok")
+    with patch.object(tracking.mlflow, "set_tracking_uri"), \
+         patch.object(tracking.mlflow, "set_experiment"):
+        tracking.setup_tracking()
+    import os
+    assert os.environ["MLFLOW_TRACKING_USERNAME"] == "me"
+    assert os.environ["MLFLOW_TRACKING_PASSWORD"] == "tok"
+
+
+def test_setup_tracking_does_not_set_auth_for_non_dagshub_uri(monkeypatch):
+    monkeypatch.delenv("MLFLOW_TRACKING_USERNAME", raising=False)
+    monkeypatch.delenv("MLFLOW_TRACKING_PASSWORD", raising=False)
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    monkeypatch.setenv("DAGSHUB_REPO_OWNER", "me")
+    monkeypatch.setenv("DAGSHUB_TOKEN", "tok")
+    with patch.object(tracking.mlflow, "set_tracking_uri"), \
+         patch.object(tracking.mlflow, "set_experiment"):
+        tracking.setup_tracking()
+    import os
+    assert "MLFLOW_TRACKING_USERNAME" not in os.environ
+    assert "MLFLOW_TRACKING_PASSWORD" not in os.environ
+
+
 def test_find_baseline_run_returns_none_when_no_runs(monkeypatch):
     fake_client = MagicMock()
     fake_client.search_runs.return_value = []
