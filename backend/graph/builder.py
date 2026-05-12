@@ -16,10 +16,6 @@ from backend.agents.thesis_replay import thesis_replay_agent
 from backend.agents.moderator import moderator_agent
 
 
-def _evidence_merge(state: AgentState) -> dict:
-    return {}
-
-
 def _route_after_verifier(state: AgentState) -> str:
     if (
         state.get("verification_status") == "needs_reroute"
@@ -37,7 +33,6 @@ def build_graph(checkpointer=None) -> StateGraph:
     builder.add_node("filings", filings_agent)
     builder.add_node("news", news_agent)
     builder.add_node("quant_data", quant_data_agent)
-    builder.add_node("evidence_merge", _evidence_merge)
     builder.add_node("quant_interpretation", quant_interpretation_agent)
     builder.add_node("evidence_contradiction", evidence_contradiction_agent)
     builder.add_node("bull", bull_agent)
@@ -55,12 +50,11 @@ def build_graph(checkpointer=None) -> StateGraph:
     builder.add_edge("supervisor", "news")
     builder.add_edge("supervisor", "quant_data")
 
-    builder.add_edge("market_data", "evidence_merge")
-    builder.add_edge("filings", "evidence_merge")
-    builder.add_edge("news", "evidence_merge")
-    builder.add_edge("quant_data", "evidence_merge")
+    builder.add_edge("market_data", "quant_interpretation")
+    builder.add_edge("filings", "quant_interpretation")
+    builder.add_edge("news", "quant_interpretation")
+    builder.add_edge("quant_data", "quant_interpretation")
 
-    builder.add_edge("evidence_merge", "quant_interpretation")
     builder.add_edge("quant_interpretation", "evidence_contradiction")
 
     builder.add_edge("evidence_contradiction", "bull")

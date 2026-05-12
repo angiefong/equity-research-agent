@@ -41,7 +41,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 AGENT_NODES = {
     "supervisor", "market_data", "filings", "news", "quant_data",
-    "evidence_merge", "quant_interpretation", "evidence_contradiction",
+    "quant_interpretation", "evidence_contradiction",
     "bull", "bear", "debate_contradiction", "verifier",
     "reroute", "thesis_replay", "moderator",
 }
