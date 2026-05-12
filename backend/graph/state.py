@@ -4,6 +4,7 @@ from typing_extensions import NotRequired, TypedDict
 from backend.schemas.contradiction import Contradiction
 from backend.schemas.debate import DebatePoint
 from backend.schemas.evidence import EvidenceSpan
+from backend.schemas.market_snapshot import MarketSnapshot
 from backend.schemas.memo import ResearchMemo
 from backend.schemas.thesis import ThesisSnapshot, ThesisDelta
 from backend.schemas.verification import VerificationIssue
@@ -35,6 +36,7 @@ class AgentState(TypedDict):
     company_name: NotRequired[Optional[str]]
     exchange: NotRequired[Optional[str]]
     sector: NotRequired[Optional[str]]
+    market_snapshot: NotRequired[Optional[MarketSnapshot]]
 
 
 class OutputState(TypedDict):
