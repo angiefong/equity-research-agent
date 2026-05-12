@@ -60,6 +60,7 @@ async def run_stream(ticker: str, query: str):
         run_start_time = time.time()
 
         active_agents: set[str] = set()
+        completed_agents: set[str] = set()
         merged: asyncio.Queue = asyncio.Queue()
         SENTINEL = object()
 
@@ -93,6 +94,7 @@ async def run_stream(ticker: str, query: str):
                         output = event.get("data", {}).get("output", {})
                         summary = _summarize_output(name, output)
                         active_agents.discard(name)
+                        completed_agents.add(name)
                         await merged.put({
                             "event": "agent_completed",
                             "data": _dumps({
@@ -117,6 +119,8 @@ async def run_stream(ticker: str, query: str):
                 state = await graph.aget_state(config)
                 final = dict(state.values) if state else {}
                 _run_results[run_id] = final
+                _run_results[run_id]["duration_s"] = round(time.time() - run_start_time, 2)
+                _run_results[run_id]["agent_count"] = len(completed_agents)
             finally:
                 await merged.put(SENTINEL)
 
@@ -159,7 +163,7 @@ async def run_stream(ticker: str, query: str):
                         "bear_weight": memo_dict.get("bear_weight"),
                         "lede": lede,
                         "duration_s": round(time.time() - run_start_time, 2),
-                        "agent_count": len(AGENT_NODES),
+                        "agent_count": len(completed_agents),
                     })
             except Exception:
                 logger.exception("failed to append run to runs_index")
@@ -225,8 +229,11 @@ async def get_artifacts(run_id: str):
         raise HTTPException(status_code=404, detail="Run not found")
     return {
         k: v for k, v in result.items()
-        if k in ("evidence", "bull_points", "bear_points", "evidence_contradictions",
-                  "debate_contradictions", "verification_issues", "thesis_delta")
+        if k in (
+            "evidence", "bull_points", "bear_points", "evidence_contradictions",
+            "debate_contradictions", "verification_issues", "thesis_delta",
+            "market_snapshot", "duration_s", "agent_count",
+        )
     }
 
 
