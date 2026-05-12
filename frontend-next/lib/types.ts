@@ -33,6 +33,9 @@ export type Artifacts = {
   debate_contradictions?: unknown[];
   verification_issues?: unknown[];
   thesis_delta?: unknown;
+  market_snapshot?: MarketSnapshot;
+  duration_s?: number;
+  agent_count?: number;
 };
 
 export type RunSummary = {
@@ -48,3 +51,20 @@ export type RunSummary = {
 };
 
 export type AgentStatus = "pending" | "running" | "completed" | "failed";
+
+export type PricePoint = { date: string; price: number };
+
+export type MarketSnapshot = {
+  ticker: string;
+  current_price: number;
+  change_abs: number | null;
+  change_pct: number | null;
+  high_52w: number | null;
+  low_52w: number | null;
+  market_cap: number | null;
+  pe_forward: number | null;
+  eps_ttm: number | null;
+  dividend_yield: number | null;
+  volume: number | null;
+  series: PricePoint[];
+};
