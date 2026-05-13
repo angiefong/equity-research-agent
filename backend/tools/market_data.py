@@ -1,3 +1,4 @@
+import math
 import os
 import requests
 import yfinance as yf
@@ -116,11 +117,20 @@ def get_market_snapshot(ticker: str) -> MarketSnapshot:
 
     def _opt_float(key: str) -> float | None:
         v = info.get(key)
-        return float(v) if v is not None else None
+        if v is None:
+            return None
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            return None
+        return None if math.isnan(f) else f
 
     def _opt_int(key: str) -> int | None:
-        v = info.get(key)
-        return int(v) if v is not None else None
+        f = _opt_float(key)
+        return int(f) if f is not None else None
+
+    # yfinance returns dividendYield as a percent value (0.37 = 0.37%); normalize to fraction
+    _dy = _opt_float("dividendYield")
 
     return MarketSnapshot(
         ticker=ticker,
@@ -132,7 +142,7 @@ def get_market_snapshot(ticker: str) -> MarketSnapshot:
         market_cap=_opt_float("marketCap"),
         pe_forward=_opt_float("forwardPE"),
         eps_ttm=_opt_float("trailingEps"),
-        dividend_yield=_opt_float("dividendYield"),
+        dividend_yield=(_dy / 100.0) if _dy is not None else None,
         volume=_opt_int("volume"),
         series=series,
     )

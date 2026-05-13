@@ -11,7 +11,7 @@ def _mock_yf_ticker():
         "marketCap": 3.2e12,
         "forwardPE": 28.5,
         "trailingEps": 6.05,
-        "dividendYield": 0.0049,
+        "dividendYield": 0.49,
         "volume": 72_000_000,
         "fiftyTwoWeekHigh": 238.0,
         "fiftyTwoWeekLow": 164.0,
@@ -34,7 +34,8 @@ def test_get_market_snapshot_from_yfinance():
     assert snap.market_cap == 3.2e12
     assert snap.pe_forward == 28.5
     assert snap.eps_ttm == 6.05
-    assert snap.dividend_yield == 0.0049
+    # yfinance returns dividendYield as a percent (0.49 → 0.49%); tool normalizes to fraction
+    assert abs(snap.dividend_yield - 0.0049) < 1e-9
     assert snap.volume == 72_000_000
     assert len(snap.series) == 90
     assert snap.series[0].date == "2026-02-10"
@@ -71,3 +72,28 @@ def test_get_market_snapshot_handles_empty_history():
     assert snap.change_abs is None
     assert snap.change_pct is None
     assert snap.series == []
+
+
+def test_get_market_snapshot_handles_nan_and_string_info():
+    """yfinance can return float('nan') or 'N/A' for any numeric field."""
+    mock = MagicMock()
+    mock.info = {
+        "marketCap": float("nan"),
+        "forwardPE": "N/A",
+        "trailingEps": float("nan"),
+        "dividendYield": "N/A",
+        "volume": float("nan"),
+        "fiftyTwoWeekHigh": 100.0,
+        "fiftyTwoWeekLow": float("nan"),
+    }
+    dates = pd.date_range("2026-02-10", periods=2)
+    mock.history.return_value = pd.DataFrame({"Close": [180.0, 185.0]}, index=dates)
+    with patch("backend.tools.market_data.yf.Ticker", return_value=mock):
+        snap = get_market_snapshot("XYZ")
+    assert snap.market_cap is None
+    assert snap.pe_forward is None
+    assert snap.eps_ttm is None
+    assert snap.dividend_yield is None
+    assert snap.volume is None
+    assert snap.high_52w == 100.0
+    assert snap.low_52w is None
