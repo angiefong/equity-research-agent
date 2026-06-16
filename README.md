@@ -122,7 +122,9 @@ ADRs under [`docs/adr/`](docs/adr/) record decisions made during the architectur
 
 ```bash
 cp .env.example .env
-# fill in GROQ_KEY, OPENAI_API_KEY (fallback), ALPHA_VANTAGE_KEY, TAVILY_API_KEY
+# fill in ALPHA_VANTAGE_KEY, TAVILY_KEY, and either:
+# - LLM_PROVIDER=groq with GROQ_KEY plus optional OPENAI_API_KEY fallback
+# - LLM_PROVIDER=openrouter with OPENROUTER_API_KEY
 
 pip install -r requirements.txt
 pytest                                              # 110 tests
@@ -130,6 +132,31 @@ pytest                                              # 110 tests
 uvicorn backend.api:app --reload                    # backend
 cd frontend-next && npm install && npm run dev      # frontend
 ```
+
+### Railway environment
+
+Backend service variables:
+
+```bash
+ALPHA_VANTAGE_KEY=...
+TAVILY_KEY=...
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=...
+OPENROUTER_MODEL_LARGE=deepseek/deepseek-v4-flash
+OPENROUTER_MODEL_SMALL=meta-llama/llama-3.1-8b-instruct
+OPENROUTER_HTTP_REFERER=https://your-portfolio-site.example
+OPENROUTER_APP_TITLE=Equity Research Agent
+RUNTIME_DATA_DIR=/app/runtime_data
+RUNS_INDEX_FILE=/app/runtime_data/runs.jsonl
+```
+
+Frontend service variable:
+
+```bash
+NEXT_PUBLIC_BACKEND_URL=https://your-backend-service.up.railway.app
+```
+
+The default OpenRouter large model is `deepseek/deepseek-v4-flash`; the small tier uses `meta-llama/llama-3.1-8b-instruct` to keep lightweight agents cheap. Other lower-cost small-tier candidates include `qwen/qwen3.5-flash-02-23` and `z-ai/glm-4.7-flash`; run the eval harness before using them in the demo.
 
 ## License
 
