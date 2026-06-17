@@ -146,6 +146,7 @@ OPENROUTER_MODEL_LARGE=deepseek/deepseek-v4-flash
 OPENROUTER_MODEL_SMALL=meta-llama/llama-3.1-8b-instruct
 OPENROUTER_HTTP_REFERER=https://your-portfolio-site.example
 OPENROUTER_APP_TITLE=Equity Research Agent
+DEMO_ACCESS_CODE=...
 RUNTIME_DATA_DIR=/app/runtime_data
 RUNS_INDEX_FILE=/app/runtime_data/runs.jsonl
 ```
@@ -157,6 +158,8 @@ NEXT_PUBLIC_BACKEND_URL=https://your-backend-service.up.railway.app
 ```
 
 The default OpenRouter large model is `deepseek/deepseek-v4-flash`; the small tier uses `meta-llama/llama-3.1-8b-instruct` to keep lightweight agents cheap. Other lower-cost small-tier candidates include `qwen/qwen3.5-flash-02-23` and `z-ai/glm-4.7-flash`; run the eval harness before using them in the demo.
+
+Set `DEMO_ACCESS_CODE` on the backend service to require a shared access code before users can start runs or fetch memo data. Leave it unset for open local development.
 
 ## License
 

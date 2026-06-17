@@ -23,7 +23,16 @@ function RunPageInner() {
   const ticker = search.get("ticker") || "";
   const query = search.get("query") || "";
   const urlRunId = search.get("runId");
-  const url = ticker && query ? api.streamUrl(ticker, query) : null;
+  const accessFromUrl = search.get("access_code") || "";
+  const [accessCode, setAccessCode] = useState(accessFromUrl);
+  const [accessReady, setAccessReady] = useState(Boolean(accessFromUrl));
+  useEffect(() => {
+    const code = accessFromUrl || window.localStorage.getItem("demoAccessCode") || "";
+    if (code) window.localStorage.setItem("demoAccessCode", code);
+    setAccessCode(code);
+    setAccessReady(true);
+  }, [accessFromUrl]);
+  const url = ticker && query && accessReady ? api.streamUrl(ticker, query, accessCode) : null;
   const state = useRunStream(url);
 
   const [, setTick] = useState(0);
@@ -36,18 +45,22 @@ function RunPageInner() {
   useEffect(() => {
     if (state.runId && state.runId !== urlRunId) {
       const next = new URLSearchParams({ ticker, query, runId: state.runId });
+      if (accessCode) next.set("access_code", accessCode);
       router.replace(`/run?${next.toString()}`);
     }
-  }, [state.runId, urlRunId, ticker, query, router]);
+  }, [state.runId, urlRunId, ticker, query, accessCode, router]);
 
   // On completion, navigate to the memo viewer.
   useEffect(() => {
     if (state.status !== "completed" || !state.runId) return;
     const id = setTimeout(() => {
-      router.replace(`/memo/${state.runId}`);
+      const next = new URLSearchParams();
+      if (accessCode) next.set("access_code", accessCode);
+      const suffix = next.toString() ? `?${next.toString()}` : "";
+      router.replace(`/memo/${state.runId}${suffix}`);
     }, 800);
     return () => clearTimeout(id);
-  }, [state.status, state.runId, router]);
+  }, [state.status, state.runId, accessCode, router]);
 
   const elapsed = state.startedAt ? Math.round((Date.now() - state.startedAt) / 1000) : 0;
   const min = Math.floor(elapsed / 60).toString().padStart(2, "0");
