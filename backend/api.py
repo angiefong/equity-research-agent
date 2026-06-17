@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import uuid
 from datetime import date, datetime
 from enum import Enum
@@ -49,8 +50,19 @@ AGENT_NODES = {
 _run_results: dict[str, dict] = {}
 
 
+def _demo_access_code() -> str | None:
+    return os.environ.get("DEMO_ACCESS_CODE") or None
+
+
+def _require_demo_access(access_code: str | None) -> None:
+    expected = _demo_access_code()
+    if expected and not secrets.compare_digest(access_code or "", expected):
+        raise HTTPException(status_code=401, detail="Demo access code required")
+
+
 @app.get("/run/stream")
-async def run_stream(ticker: str, query: str):
+async def run_stream(ticker: str, query: str, access_code: str | None = None):
+    _require_demo_access(access_code)
     run_id = str(uuid.uuid4())
 
     async def event_gen() -> AsyncGenerator:
@@ -210,12 +222,14 @@ def _classify_verdict(memo: dict) -> str:
 
 
 @app.get("/runs")
-async def get_runs(limit: int = 10):
+async def get_runs(limit: int = 10, access_code: str | None = None):
+    _require_demo_access(access_code)
     return list_runs(limit=limit)
 
 
 @app.get("/run/{run_id}/memo")
-async def get_memo(run_id: str):
+async def get_memo(run_id: str, access_code: str | None = None):
+    _require_demo_access(access_code)
     result = _run_results.get(run_id)
     if not result or not result.get("final_memo"):
         raise HTTPException(status_code=404, detail="Run not found or not completed")
@@ -223,7 +237,8 @@ async def get_memo(run_id: str):
 
 
 @app.get("/run/{run_id}/artifacts")
-async def get_artifacts(run_id: str):
+async def get_artifacts(run_id: str, access_code: str | None = None):
+    _require_demo_access(access_code)
     result = _run_results.get(run_id)
     if not result:
         raise HTTPException(status_code=404, detail="Run not found")
@@ -238,7 +253,8 @@ async def get_artifacts(run_id: str):
 
 
 @app.get("/ticker/{ticker}/thesis-drift")
-async def get_thesis_drift(ticker: str):
+async def get_thesis_drift(ticker: str, access_code: str | None = None):
+    _require_demo_access(access_code)
     snapshot = load_latest_snapshot(ticker)
     if not snapshot:
         return {"message": f"No prior run found for {ticker}"}
