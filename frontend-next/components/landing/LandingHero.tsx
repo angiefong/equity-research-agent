@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -44,6 +45,15 @@ export function LandingHero() {
       <p className="text-[14px] text-[#444] leading-[1.55] max-w-[56ch] mb-5">
         Type a ticker and a question. Watch fourteen specialized agents fetch filings, news, and market data, debate bull and bear, surface contradictions, and assemble a verifiable research memo.
       </p>
+      <div className="flex gap-2.5 mb-4 flex-wrap">
+        <Link
+          href="/memo/sample"
+          className="inline-flex items-center border-[1.5px] border-ink bg-accentSoft px-3 py-2 text-[11px] font-extrabold uppercase tracking-[1.5px] hover:bg-accent"
+        >
+          View sample memo
+        </Link>
+        <span className="font-mono text-[11px] text-muted self-center">No access code required</span>
+      </div>
       <form onSubmit={(e) => { e.preventDefault(); start(); }} className="border-2 border-ink">
         <div className="grid grid-cols-[120px_1fr_auto] border-b-[1.5px] border-ink">
           <input

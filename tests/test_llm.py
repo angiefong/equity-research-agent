@@ -16,15 +16,53 @@ class FakeChatOpenAI:
         return ("structured", output_schema, method, self)
 
 
+class FakeChatGroq:
+    calls = []
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        FakeChatGroq.calls.append(kwargs)
+
+    def with_structured_output(self, output_schema, method="function_calling"):
+        return ("structured-groq", output_schema, method, self)
+
+
 class FakeSchema(BaseModel):
     value: str
 
 
 def reset_llm_state():
     FakeChatOpenAI.calls = []
+    FakeChatGroq.calls = []
     llm._openrouter_clients.clear()
     llm._openai_clients.clear()
     llm._groq_clients.clear()
+
+
+def test_groq_client_uses_higher_retry_default(monkeypatch):
+    reset_llm_state()
+    monkeypatch.setattr(llm, "ChatGroq", FakeChatGroq)
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_KEY", "gsk-test-key")
+    monkeypatch.delenv("LLM_MAX_RETRIES", raising=False)
+    monkeypatch.delenv("GROQ_MAX_RETRIES", raising=False)
+
+    client = llm.get_llm("large")
+
+    assert isinstance(client, FakeChatGroq)
+    assert FakeChatGroq.calls[0]["max_retries"] == 6
+
+
+def test_provider_specific_retry_env_overrides_default(monkeypatch):
+    reset_llm_state()
+    monkeypatch.setattr(llm, "ChatGroq", FakeChatGroq)
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("GROQ_KEY", "gsk-test-key")
+    monkeypatch.setenv("GROQ_MAX_RETRIES", "9")
+
+    llm.get_llm("small")
+
+    assert FakeChatGroq.calls[0]["max_retries"] == 9
 
 
 def test_openrouter_provider_uses_openai_compatible_client(monkeypatch):
@@ -44,6 +82,7 @@ def test_openrouter_provider_uses_openai_compatible_client(monkeypatch):
             "model": "openai/gpt-4o",
             "temperature": 0.1,
             "api_key": "or-test-key",
+            "max_retries": 6,
             "base_url": "https://openrouter.ai/api/v1",
             "default_headers": {
                 "X-OpenRouter-Title": "Portfolio Research Demo",

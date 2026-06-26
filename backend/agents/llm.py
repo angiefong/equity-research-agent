@@ -34,12 +34,20 @@ def _env_model(prefix: str, tier: str, defaults: dict[str, str]) -> str:
     return os.environ.get(f"{prefix}_MODEL_{tier.upper()}", defaults[tier])
 
 
+def _max_retries(prefix: str, default: int = 6) -> int:
+    raw = os.environ.get(f"{prefix}_MAX_RETRIES") or os.environ.get("LLM_MAX_RETRIES")
+    if raw is None:
+        return default
+    return int(raw)
+
+
 def _get_groq(tier: str) -> ChatGroq:
     if tier not in _groq_clients:
         _groq_clients[tier] = ChatGroq(
             model=_env_model("GROQ", tier, _GROQ_MODELS),
             temperature=0.1,
             api_key=os.environ["GROQ_KEY"],
+            max_retries=_max_retries("GROQ"),
         )
     return _groq_clients[tier]
 
@@ -50,6 +58,7 @@ def _get_openai(tier: str) -> ChatOpenAI:
             model=_env_model("OPENAI", tier, _OPENAI_MODELS),
             temperature=0.1,
             api_key=os.environ["OPENAI_API_KEY"],
+            max_retries=_max_retries("OPENAI"),
         )
     return _openai_clients[tier]
 
@@ -64,6 +73,7 @@ def _get_openrouter(tier: str) -> ChatOpenAI:
             model=_env_model("OPENROUTER", tier, _OPENROUTER_MODELS),
             temperature=0.1,
             api_key=os.environ["OPENROUTER_API_KEY"],
+            max_retries=_max_retries("OPENROUTER"),
             base_url=os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
             default_headers=headers,
         )

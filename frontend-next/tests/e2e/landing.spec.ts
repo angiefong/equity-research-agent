@@ -11,7 +11,17 @@ test("landing requires demo access code before starting live research", async ({
   await page.goto("/");
   await page.getByRole("button", { name: /run research/i }).click();
 
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/\??$/);
   await expect(page.locator("#demo-access-error")).toHaveText("Enter the demo access code to run live research.");
   await expect(page.getByPlaceholder("Demo access code")).toBeFocused();
+});
+
+test("landing links to a no-code sample memo", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: /view sample memo/i }).click();
+
+  await expect(page).toHaveURL(/\/memo\/sample$/);
+  await expect(page.getByText("Equity Research Memo")).toBeVisible();
+  await expect(page.getByText("Apple Inc.")).toBeVisible();
+  await expect(page.getByText(/sample/i).first()).toBeVisible();
 });
