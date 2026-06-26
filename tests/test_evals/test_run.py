@@ -191,6 +191,23 @@ def test_run_does_not_retry_non_rate_limit_failures(monkeypatch):
     assert calls == ["AAPL"]
 
 
+def test_run_provider_daily_quota_exits_neutral(monkeypatch, tmp_path):
+    def fake_run_pipeline(ticker, epoch):
+        raise RuntimeError(
+            "Error code: 429 - Rate limit reached on tokens per day (TPD). "
+            "Please try again in 3m9.216s."
+        )
+
+    monkeypatch.setattr(run_module, "_run_pipeline_for_ticker", fake_run_pipeline)
+    monkeypatch.setattr(run_module, "_eval_pipeline_max_attempts", lambda: 1)
+    monkeypatch.setattr(run_module, "_setup_mlflow_and_run",
+                        lambda *a, **k: _StubMlflowCtx(tmp_path))
+
+    exit_code = run_module.main(["--quick"])
+
+    assert exit_code == run_module.PROVIDER_QUOTA_EXIT_CODE
+
+
 class _StubMlflowCtx:
     """Stand-in for tracking.parent_run / ticker_run that records calls."""
     def __init__(self, root):
