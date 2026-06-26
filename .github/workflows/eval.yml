@@ -38,7 +38,7 @@ jobs:
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "flag=--${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
           else
-            echo "flag=--full" >> "$GITHUB_OUTPUT"
+            echo "flag=--quick" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run eval harness
@@ -53,7 +53,15 @@ jobs:
           GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set +e
           python -m backend.evals.run ${{ steps.mode.outputs.flag }} --publish
+          code=$?
+          set -e
+          if [[ "$code" == "78" ]]; then
+            echo "::warning::Eval skipped because the hosted LLM provider daily-token quota is exhausted."
+            exit 0
+          fi
+          exit "$code"
 
       - name: Upload run artifacts
         if: always()

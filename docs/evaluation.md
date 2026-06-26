@@ -72,7 +72,7 @@ GITHUB_PR_NUMBER=42 python -m backend.evals.run --quick --publish
 
 ## CI
 
-`.github/workflows/eval.yml` runs `--quick` on every PR push (posts the summary as a PR comment) and `--full` on merge to main. Manual `--full` runs available via workflow_dispatch.
+`.github/workflows/eval.yml` runs `--quick` on every PR and merge to main so CI does not exhaust hosted LLM daily-token quotas. Manual `--full` runs are available via workflow_dispatch when you want the broader five-ticker regression check. If the hosted LLM provider is already out of daily tokens, the workflow emits a warning and exits neutral instead of marking unrelated code changes red.
 
 ## Public experiment tracking
 

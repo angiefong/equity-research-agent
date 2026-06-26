@@ -24,6 +24,7 @@ from backend.evals.rubric import FullEval
 EXPERIMENT_NAME = "equity-research-agent"
 RUNTIME_ROOT = Path("runtime_data/eval_runs")
 RATE_LIMIT_RETRY_RE = re.compile(r"try again in ([0-9.]+)s", re.IGNORECASE)
+PROVIDER_QUOTA_EXIT_CODE = 78
 
 
 def _git_sha() -> str:
@@ -85,6 +86,11 @@ def _run_pipeline_for_ticker(ticker: str, epoch: str) -> dict:
 def _is_rate_limit_error(exc: Exception) -> bool:
     text = f"{type(exc).__name__}: {exc}".lower()
     return "ratelimit" in text or "rate limit" in text or "status_code: 429" in text or "error code: 429" in text
+
+
+def _is_provider_quota_error(exc: Exception) -> bool:
+    text = f"{type(exc).__name__}: {exc}".lower()
+    return _is_rate_limit_error(exc) and ("tokens per day" in text or "tpd" in text)
 
 
 def _rate_limit_delay_seconds(exc: Exception) -> float:
@@ -243,6 +249,7 @@ def main(argv: list[str] | None = None) -> int:
 
     per_ticker: dict[str, FullEval | None] = {}
     n_failed = 0
+    n_provider_quota_failed = 0
 
     with _setup_mlflow_and_run(tags, params):
         for ticker in tickers:
@@ -285,6 +292,8 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as e:
                 per_ticker[ticker] = None
                 n_failed += 1
+                if _is_provider_quota_error(e):
+                    n_provider_quota_failed += 1
                 tdir = local_dir / ticker
                 tdir.mkdir(parents=True, exist_ok=True)
                 (tdir / "error.txt").write_text(f"{type(e).__name__}: {e}\n")
@@ -333,6 +342,13 @@ def main(argv: list[str] | None = None) -> int:
     regressed = report.exceeds_regression(
         avg_overall, baseline_overall, config.resolve_regression_threshold()
     )
+    if n_provider_quota_failed > 0 and n_provider_quota_failed == n_failed:
+        print(
+            "[eval] provider daily-token quota exhausted; treating eval as neutral "
+            "instead of a code regression.",
+            file=sys.stderr,
+        )
+        return PROVIDER_QUOTA_EXIT_CODE
     if n_failed > 0 or regressed:
         return 1
     return 0
