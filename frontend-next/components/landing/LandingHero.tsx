@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const EXAMPLES = [
   "NVDA — earnings preview",
@@ -14,6 +14,8 @@ export function LandingHero() {
   const [ticker, setTicker] = useState("AAPL");
   const [query, setQuery] = useState("Build a bull and bear case for AAPL");
   const [accessCode, setAccessCode] = useState("");
+  const [accessError, setAccessError] = useState("");
+  const accessInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setAccessCode(window.localStorage.getItem("demoAccessCode") || "");
@@ -22,6 +24,11 @@ export function LandingHero() {
   function start() {
     if (!ticker.trim() || !query.trim()) return;
     const code = accessCode.trim();
+    if (!code) {
+      setAccessError("Enter the demo access code to run live research.");
+      accessInputRef.current?.focus();
+      return;
+    }
     if (code) window.localStorage.setItem("demoAccessCode", code);
     const params = new URLSearchParams({ ticker, query });
     if (code) params.set("access_code", code);
@@ -60,12 +67,23 @@ export function LandingHero() {
           </button>
         </div>
         <input
+          ref={accessInputRef}
           value={accessCode}
-          onChange={e => setAccessCode(e.target.value)}
+          onChange={e => {
+            setAccessCode(e.target.value);
+            if (accessError) setAccessError("");
+          }}
           className="w-full px-3.5 py-2.5 text-[12px] font-mono focus:outline-none focus:bg-accentSoft"
           placeholder="Demo access code"
           autoComplete="off"
+          aria-invalid={Boolean(accessError)}
+          aria-describedby={accessError ? "demo-access-error" : undefined}
         />
+        {accessError && (
+          <p id="demo-access-error" role="alert" className="border-t-[1.5px] border-ink bg-accentSoft px-3.5 py-2 text-[12px] font-bold text-ink">
+            {accessError}
+          </p>
+        )}
       </form>
       <div className="flex gap-2 mt-3 flex-wrap">
         {EXAMPLES.map(ex => (
