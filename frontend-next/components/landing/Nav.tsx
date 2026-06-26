@@ -10,7 +10,7 @@ export function Nav({ active }: { active?: "research" | "history" | "how" }) {
       </Link>
       <div className="flex gap-4">
         <Link href="/" className={linkClass("research")}>RESEARCH</Link>
-        <Link href="#" className={linkClass("history")}>HISTORY</Link>
+        <Link href="/memo/sample" className={linkClass("history")}>SAMPLE</Link>
         <Link href="#" className={linkClass("how")}>HOW IT WORKS</Link>
       </div>
     </div>

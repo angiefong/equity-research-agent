@@ -154,6 +154,43 @@ def test_run_partial_failure_exits_nonzero(monkeypatch, tmp_path):
     assert (aapl_dir / "memo.json").exists()
 
 
+def test_run_retries_rate_limit_failures(monkeypatch):
+    calls = []
+    sleeps = []
+
+    def fake_run_pipeline(ticker, epoch):
+        calls.append((ticker, epoch))
+        if len(calls) == 1:
+            raise RuntimeError("Error code: 429 - Please try again in 1.5s.")
+        return {"final_memo": "ok", "evidence": []}
+
+    monkeypatch.setenv("EVAL_PIPELINE_MAX_ATTEMPTS", "2")
+    monkeypatch.setattr(run_module, "_run_pipeline_for_ticker", fake_run_pipeline)
+    monkeypatch.setattr(run_module.time, "sleep", lambda seconds: sleeps.append(seconds))
+
+    state = run_module._run_pipeline_for_ticker_with_retries("AAPL", "2026-Q2")
+
+    assert state["final_memo"] == "ok"
+    assert calls == [("AAPL", "2026-Q2"), ("AAPL", "2026-Q2")]
+    assert sleeps == [5.0]
+
+
+def test_run_does_not_retry_non_rate_limit_failures(monkeypatch):
+    calls = []
+
+    def fake_run_pipeline(ticker, epoch):
+        calls.append(ticker)
+        raise RuntimeError("pipeline boom")
+
+    monkeypatch.setenv("EVAL_PIPELINE_MAX_ATTEMPTS", "3")
+    monkeypatch.setattr(run_module, "_run_pipeline_for_ticker", fake_run_pipeline)
+
+    with pytest.raises(RuntimeError, match="pipeline boom"):
+        run_module._run_pipeline_for_ticker_with_retries("AAPL", "2026-Q2")
+
+    assert calls == ["AAPL"]
+
+
 class _StubMlflowCtx:
     """Stand-in for tracking.parent_run / ticker_run that records calls."""
     def __init__(self, root):

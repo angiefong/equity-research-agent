@@ -45,7 +45,7 @@ function factsFromSnapshot(snap: MarketSnapshot | undefined): Fact[] {
   ];
 }
 
-export function MemoView({ memo, artifacts }: { memo: ResearchMemo; artifacts: Artifacts }) {
+export function MemoView({ memo, artifacts, label = "live" }: { memo: ResearchMemo; artifacts: Artifacts; label?: string }) {
   const snap = artifacts.market_snapshot;
   const company = [memo.company_name, memo.exchange, memo.sector].filter(Boolean).join(" · ");
   const series = snap?.series.map(p => ({ date: p.date, price: p.price })) ?? [];
@@ -61,7 +61,7 @@ export function MemoView({ memo, artifacts }: { memo: ResearchMemo; artifacts: A
 
   return (
     <div className="b-frame max-w-[920px] mx-auto my-6">
-      <Topbar left="Equity Research Memo" right={`${memo.timestamp} · live`} />
+      <Topbar left="Equity Research Memo" right={`${memo.timestamp} · ${label}`} />
       <MemoHero
         ticker={memo.ticker}
         companyLine={company || memo.ticker}

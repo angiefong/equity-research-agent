@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -22,6 +23,7 @@ from backend.evals.rubric import FullEval
 
 EXPERIMENT_NAME = "equity-research-agent"
 RUNTIME_ROOT = Path("runtime_data/eval_runs")
+RATE_LIMIT_RETRY_RE = re.compile(r"try again in ([0-9.]+)s", re.IGNORECASE)
 
 
 def _git_sha() -> str:
@@ -78,6 +80,40 @@ def _run_pipeline_for_ticker(ticker: str, epoch: str) -> dict:
         "final_memo": full_state.get("final_memo"),
         "evidence": full_state.get("evidence", []),
     }
+
+
+def _is_rate_limit_error(exc: Exception) -> bool:
+    text = f"{type(exc).__name__}: {exc}".lower()
+    return "ratelimit" in text or "rate limit" in text or "status_code: 429" in text or "error code: 429" in text
+
+
+def _rate_limit_delay_seconds(exc: Exception) -> float:
+    match = RATE_LIMIT_RETRY_RE.search(str(exc))
+    if not match:
+        return 20.0
+    return max(float(match.group(1)) + 2.0, 5.0)
+
+
+def _eval_pipeline_max_attempts() -> int:
+    return int(os.environ.get("EVAL_PIPELINE_MAX_ATTEMPTS", "3"))
+
+
+def _run_pipeline_for_ticker_with_retries(ticker: str, epoch: str) -> dict:
+    max_attempts = _eval_pipeline_max_attempts()
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return _run_pipeline_for_ticker(ticker, epoch)
+        except Exception as e:
+            if attempt >= max_attempts or not _is_rate_limit_error(e):
+                raise
+            delay = _rate_limit_delay_seconds(e)
+            print(
+                f"[eval] {ticker} hit rate limit on attempt {attempt}/{max_attempts}; "
+                f"sleeping {delay:.1f}s before retry.",
+                flush=True,
+            )
+            time.sleep(delay)
+    raise RuntimeError(f"unreachable retry state for {ticker}")
 
 
 @contextmanager
@@ -211,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
     with _setup_mlflow_and_run(tags, params):
         for ticker in tickers:
             try:
-                state = _run_pipeline_for_ticker(ticker, epoch)
+                state = _run_pipeline_for_ticker_with_retries(ticker, epoch)
                 final_memo = state.get("final_memo")
                 if final_memo is None:
                     raise RuntimeError(f"pipeline did not produce final_memo for {ticker}")
